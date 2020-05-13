@@ -8,6 +8,7 @@ use core::alloc::*;
 
 #[derive(Debug)]
 pub struct BoehmAllocator;
+pub(crate) struct BoehmGcAllocator;
 
 #[unstable(feature = "allocator_api", issue = "32838")]
 unsafe impl GlobalAlloc for BoehmAllocator {
