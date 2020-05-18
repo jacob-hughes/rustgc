@@ -88,7 +88,7 @@ fn main() {
     }
 
     let out_dir = env::var("OUT_DIR").unwrap();
-    let mut boehm_src = PathBuf::from(out_dir);
+    let mut boehm_src = PathBuf::from(&out_dir);
     boehm_src.push(BOEHM_DIR);
 
     if !boehm_src.exists() {
@@ -105,6 +105,7 @@ fn main() {
     run("./configure", |cmd| {
         cmd.arg("--enable-static")
             .arg("--disable-shared")
+            .arg(format!("--prefix={}", &out_dir.clone().as_str()))
             .env("CFLAGS", format!("{} {}", POINTER_MASK, FPIC))
     });
 
