@@ -1,4 +1,27 @@
 use std::env;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+const BOEHM_REPO: &str = "https://github.com/ivmai/bdwgc.git";
+const BOEHM_ATOMICS_REPO: &str = "https://github.com/ivmai/libatomic_ops.git";
+const BOEHM_DIR: &str = "bdwgc";
+const BUILD_DIR: &str = ".libs";
+
+#[cfg(not(all(target_pointer_width = "64", target_arch = "x86_64")))]
+compile_error!("Requires x86_64 with 64 bit pointer width.");
+static POINTER_MASK: &str = "-DPOINTER_MASK=0xFFFFFFFFFFFFFFF8";
+static FPIC: &str = "-fPIC";
+
+fn run<F>(name: &str, mut configure: F)
+where
+    F: FnMut(&mut Command) -> &mut Command,
+{
+    let mut command = Command::new(name);
+    let configured = configure(&mut command);
+    if !configured.status().is_ok() {
+        panic!("failed to execute {:?}", configured);
+    }
+}
 
 fn main() {
     let target = env::var("TARGET").expect("TARGET was not set");
@@ -63,4 +86,26 @@ fn main() {
         println!("cargo:rustc-link-lib=c");
         println!("cargo:rustc-link-lib=compiler_rt");
     }
+
+    let cargo_path = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let out_dir = env::var("OUT_DIR").unwrap();
+    let mut hello_dir = PathBuf::new();
+    hello_dir.push(cargo_path);
+    hello_dir.push("hello_static");
+
+    let mut hello_out = PathBuf::new();
+    hello_out.push(&out_dir);
+    hello_out.push("hello_static");
+
+
+    run("cp", |cmd| {
+        cmd.arg("-R").arg(&hello_dir.as_path().to_str().unwrap()).arg(&out_dir)
+    });
+
+    std::env::set_current_dir(&hello_out).unwrap();
+
+    run("make", |cmd| cmd);
+
+    println!("cargo:rustc-link-search={}", &hello_out.as_path().to_str().unwrap());
+    println!("cargo:rustc-link-lib=static=hello");
 }
