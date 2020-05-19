@@ -3,15 +3,13 @@ use core::alloc::Layout;
 use core::any::Any;
 use core::ffi::c_void;
 use core::fmt;
-use core::gc::ManageableContents;
 use core::marker::PhantomData;
 use core::mem::{self, ManuallyDrop, MaybeUninit};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{self, NonNull};
 
-use crate::alloc::AllocRef;
+use crate::alloc::{AllocInit, AllocRef};
 use crate::boehm::{self, BoehmGcAllocator};
-use crate::vec::Vec;
 
 /// A garbage collected pointer.
 ///
@@ -41,7 +39,6 @@ pub struct Gc<T: ?Sized> {
 
 impl<T> Gc<T> {
     /// Constructs a new `Gc<T>`.
-    #[unstable(feature = "gc", reason = "gc", issue = "none")]
     pub fn new(v: T) -> Self {
         Gc { ptr: unsafe { NonNull::new_unchecked(GcBox::new(v)) }, _phantom: PhantomData }
     }
@@ -54,7 +51,6 @@ impl<T> Gc<T> {
     ///
     /// `layout` must be at least as large as `T`, and have an alignment which
     /// is the same, or bigger than, `T`.
-    #[unstable(feature = "gc", reason = "gc", issue = "none")]
     pub fn new_from_layout(layout: Layout) -> Option<Gc<MaybeUninit<T>>> {
         let tl = Layout::new::<T>();
         if layout.size() < tl.size() && layout.align() >= tl.align() {
@@ -65,7 +61,6 @@ impl<T> Gc<T> {
 }
 
 impl Gc<dyn Any> {
-    #[unstable(feature = "gc", reason = "gc", issue = "none")]
     pub fn downcast<T: Any>(&self) -> Result<Gc<T>, Gc<dyn Any>> {
         if (*self).is::<T>() {
             let ptr = self.ptr.cast::<GcBox<T>>();
@@ -78,17 +73,14 @@ impl Gc<dyn Any> {
 
 impl<T: ?Sized> Gc<T> {
     /// Get a raw pointer to the underlying value `T`.
-    #[unstable(feature = "gc", reason = "gc", issue = "none")]
     pub fn into_raw(this: Self) -> *const T {
         this.ptr.as_ptr() as *const T
     }
 
-    #[unstable(feature = "gc", reason = "gc", issue = "none")]
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
         this.ptr.as_ptr() == other.ptr.as_ptr()
     }
 
-    #[unstable(feature = "gc", reason = "gc", issue = "none")]
     pub fn from_raw(raw: *const T) -> Gc<T> {
         Gc { ptr: unsafe { NonNull::new_unchecked(raw as *mut GcBox<T>) }, _phantom: PhantomData }
     }
@@ -103,10 +95,9 @@ impl<T> Gc<MaybeUninit<T>> {
     /// that the inner value really is in an initialized state. Calling this
     /// when the content is not yet fully initialized causes immediate undefined
     /// behaviour.
-    #[unstable(feature = "gc", reason = "gc", issue = "none")]
     pub unsafe fn assume_init(self) -> Gc<T> {
         let ptr = self.ptr.as_ptr() as *mut GcBox<MaybeUninit<T>>;
-        unsafe { Gc::from_inner((&mut *ptr).assume_init()) }
+        Gc::from_inner((&mut *ptr).assume_init())
     }
 }
 
@@ -120,14 +111,13 @@ struct GcBox<T: ?Sized>(ManuallyDrop<T>);
 impl<T> GcBox<T> {
     fn new(value: T) -> *mut GcBox<T> {
         let layout = Layout::new::<T>();
-        let ptr = BoehmGcAllocator.alloc(layout).unwrap().as_ptr() as *mut GcBox<T>;
+        let ptr = BoehmGcAllocator.alloc(layout, AllocInit::Uninitialized).unwrap().ptr.as_ptr()
+            as *mut GcBox<T>;
         let gcbox = GcBox(ManuallyDrop::new(value));
 
         unsafe {
             ptr.copy_from_nonoverlapping(&gcbox, 1);
-            if !Self::is_manageable_contents() && Self::needs_drop() {
-                GcBox::register_finalizer(&mut *ptr);
-            }
+            GcBox::register_finalizer(&mut *ptr);
         }
 
         mem::forget(gcbox);
@@ -136,16 +126,16 @@ impl<T> GcBox<T> {
 
     fn new_from_layout(layout: Layout) -> NonNull<GcBox<MaybeUninit<T>>> {
         unsafe {
-            let base_ptr = BoehmGcAllocator.alloc(layout).unwrap().as_ptr() as *mut usize;
+            let base_ptr =
+                BoehmGcAllocator.alloc(layout, AllocInit::Uninitialized).unwrap().ptr.as_ptr()
+                    as *mut usize;
             NonNull::new_unchecked((base_ptr.add(1)) as *mut GcBox<MaybeUninit<T>>)
         }
     }
 
     fn register_finalizer(&mut self) {
         unsafe extern "C" fn fshim<T>(obj: *mut c_void, _meta: *mut c_void) {
-            unsafe {
-                ManuallyDrop::drop(&mut *(obj as *mut ManuallyDrop<T>));
-            }
+            ManuallyDrop::drop(&mut *(obj as *mut ManuallyDrop<T>));
         }
 
         unsafe {
@@ -160,45 +150,13 @@ impl<T> GcBox<T> {
     }
 }
 
-trait IsManageableContents {
-    fn is_manageable_contents() -> bool;
-}
-
-impl<T> IsManageableContents for GcBox<T> {
-    default fn is_manageable_contents() -> bool {
-        false
-    }
-}
-
-impl<T: ManageableContents> IsManageableContents for GcBox<Vec<T>> {
-    fn is_manageable_contents() -> bool {
-        true
-    }
-}
-
-trait NeedsDrop {
-    fn needs_drop() -> bool;
-}
-
-impl<T> NeedsDrop for GcBox<T> {
-    default fn needs_drop() -> bool {
-        mem::needs_drop::<T>()
-    }
-}
-
-impl<T> NeedsDrop for GcBox<Vec<T>> {
-    fn needs_drop() -> bool {
-        mem::needs_drop::<T>()
-    }
-}
-
 impl<T> GcBox<MaybeUninit<T>> {
     unsafe fn assume_init(&mut self) -> NonNull<GcBox<T>> {
         // With T now considered initialized, we must make sure that if GcBox<T>
         // is reclaimed, T will be dropped. We need to find its vptr and replace the
         // GcDummyDrop vptr in the block header with it.
         self.register_finalizer();
-        unsafe { NonNull::new_unchecked(self as *mut _ as *mut GcBox<T>) }
+        NonNull::new_unchecked(self as *mut _ as *mut GcBox<T>)
     }
 }
 
