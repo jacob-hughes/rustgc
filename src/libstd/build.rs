@@ -105,15 +105,25 @@ fn main() {
     run("./configure", |cmd| {
         cmd.arg("--enable-static")
             .arg("--disable-shared")
-            .arg(format!("--prefix={}", &out_dir.clone().as_str()))
+            .arg(format!("--prefix={}", &out_dir.as_str()))
             .env("CFLAGS", format!("{} {}", POINTER_MASK, FPIC))
     });
 
-    run("make", |cmd| cmd);
+    run("make", |cmd| {
+        cmd.arg("install")
+    });
+
+    let mut cplib = PathBuf::from(&out_dir);
+    cplib.push("lib");
+    cplib.push("libgc.a");
+
+    run("cp", |cmd| {
+        cmd.arg(cplib.as_path()).arg(&out_dir)
+    });
 
     let mut libpath = PathBuf::from(&boehm_src);
     libpath.push(BUILD_DIR);
 
-    println!("cargo:rustc-link-search=native={}", &libpath.as_path().to_str().unwrap());
+    println!("cargo:rustc-link-search=native={}", &out_dir);
     println!("cargo:rustc-link-lib=static=gc");
 }
