@@ -14,6 +14,7 @@
 #![feature(exact_size_is_empty)]
 #![feature(linked_list_cursors)]
 #![feature(map_try_insert)]
+#![feature(gc)]
 #![feature(new_uninit)]
 #![feature(pattern)]
 #![feature(trusted_len)]
@@ -55,6 +56,7 @@ mod c_str;
 mod const_fns;
 mod cow_str;
 mod fmt;
+mod gc;
 mod heap;
 mod linked_list;
 mod rc;
