@@ -10,6 +10,8 @@
 #![feature(const_ptr_write)]
 #![feature(const_try)]
 #![feature(core_intrinsics)]
+#![feature(arbitrary_self_types)]
+#![feature(box_syntax)]
 #![feature(drain_filter)]
 #![feature(exact_size_is_empty)]
 #![feature(linked_list_cursors)]
