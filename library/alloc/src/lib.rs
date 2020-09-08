@@ -142,6 +142,7 @@
 #![feature(ptr_metadata)]
 #![feature(ptr_sub_ptr)]
 #![feature(receiver_trait)]
+#![feature(rustc_private)]
 #![feature(saturating_int_impl)]
 #![feature(set_ptr_value)]
 #![feature(sized_type_properties)]
@@ -215,6 +216,9 @@ extern crate std;
 extern crate test;
 #[cfg(test)]
 mod testing;
+
+#[allow(unused_extern_crates)]
+extern crate boehm_shim;
 
 // Module with internal macros used by other modules (needs to be included before other modules).
 #[macro_use]

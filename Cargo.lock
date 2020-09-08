@@ -59,6 +59,7 @@ dependencies = [
 name = "alloc"
 version = "0.0.0"
 dependencies = [
+ "boehm_shim",
  "compiler_builtins",
  "core",
  "rand",
@@ -4644,6 +4645,7 @@ version = "0.0.0"
 dependencies = [
  "addr2line",
  "alloc",
+ "boehm_shim",
  "cfg-if",
  "compiler_builtins",
  "core",
