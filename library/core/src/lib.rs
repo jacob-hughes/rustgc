@@ -210,10 +210,14 @@
 #![feature(exhaustive_patterns)]
 #![feature(extern_types)]
 #![feature(fundamental)]
+<<<<<<< HEAD
 #![feature(generic_arg_infer)]
 #![feature(if_let_guard)]
 #![feature(inline_const)]
 #![feature(intra_doc_pointers)]
+=======
+#![feature(gc)]
+>>>>>>> afa8ad472fa (Add mem::needs_finalizer::<T>() intrinsic)
 #![feature(intrinsics)]
 #![feature(lang_items)]
 #![feature(link_llvm_intrinsics)]

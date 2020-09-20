@@ -1345,6 +1345,10 @@ rustc_queries! {
     query needs_drop_raw(env: ty::ParamEnvAnd<'tcx, Ty<'tcx>>) -> bool {
         desc { "computing whether `{}` needs drop", env.value }
     }
+    /// Query backing `TyS::needs_finalizer`.
+    query needs_finalizer_raw(env: ty::ParamEnvAnd<'tcx, Ty<'tcx>>) -> bool {
+        desc { "computing whether `{}` needs finalizer", env.value }
+    }
     /// Query backing `Ty::has_significant_drop_raw`.
     query has_significant_drop_raw(env: ty::ParamEnvAnd<'tcx, Ty<'tcx>>) -> bool {
         desc { "computing whether `{}` has a significant drop", env.value }
@@ -1366,6 +1370,15 @@ rustc_queries! {
     /// then `Err(AlwaysRequiresDrop)` is returned.
     query adt_drop_tys(def_id: DefId) -> Result<&'tcx ty::List<Ty<'tcx>>, AlwaysRequiresDrop> {
         desc { |tcx| "computing when `{}` needs drop", tcx.def_path_str(def_id) }
+        cache_on_disk_if { true }
+    }
+
+    /// A list of types where the ADT requires finalization when used with
+    /// GC if and only if any of those types require finalization. If the
+    /// ADT is known to always need finalization then
+    /// `Err(AlwaysRequiresDrop)` is returned.
+    query adt_finalize_tys(def_id: DefId) -> Result<&'tcx ty::List<Ty<'tcx>>, AlwaysRequiresDrop> {
+        desc { |tcx| "computing when `{}` needs finalize", tcx.def_path_str(def_id) }
         cache_on_disk_if { true }
     }
 
