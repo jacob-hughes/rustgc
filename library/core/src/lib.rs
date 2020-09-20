@@ -229,6 +229,7 @@
 #![feature(f16)]
 #![feature(freeze_impls)]
 #![feature(fundamental)]
+#![feature(gc)]
 #![feature(generic_arg_infer)]
 #![feature(if_let_guard)]
 #![feature(inline_const)]

@@ -3,6 +3,7 @@
 use core::alloc::LayoutError;
 use core::cmp;
 use core::hint;
+use core::gc::FinalizerOptional;
 use core::mem::{self, ManuallyDrop, MaybeUninit, SizedTypeProperties};
 use core::ptr::{self, NonNull, Unique};
 
@@ -584,6 +585,9 @@ unsafe impl<#[may_dangle] T, A: Allocator> Drop for RawVec<T, A> {
         }
     }
 }
+
+#[unstable(feature = "gc", issue = "none")]
+unsafe impl<T, A: Allocator> FinalizerOptional for RawVec<T, A> {}
 
 // Central function for reserve error handling.
 #[cfg(not(no_global_oom_handling))]
