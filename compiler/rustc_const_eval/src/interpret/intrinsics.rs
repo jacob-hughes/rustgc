@@ -68,6 +68,10 @@ pub(crate) fn eval_nullary_intrinsic<'tcx>(
             ensure_monomorphic_enough(tcx, tp_ty)?;
             ConstValue::from_bool(tp_ty.needs_drop(tcx, param_env))
         }
+        sym::needs_finalizer => {
+            ensure_monomorphic_enough(tcx, tp_ty)?;
+            ConstValue::from_bool(tp_ty.needs_finalizer(tcx, param_env))
+        }
         sym::pref_align_of => {
             // Correctly handles non-monomorphic calls, so there is no need for ensure_monomorphic_enough.
             let layout = tcx.layout_of(param_env.and(tp_ty)).map_err(|e| err_inval!(Layout(e)))?;
@@ -160,6 +164,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
 
             sym::pref_align_of
             | sym::needs_drop
+            | sym::needs_finalizer
             | sym::type_id
             | sym::type_name
             | sym::variant_count => {
@@ -168,6 +173,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                     sym::pref_align_of | sym::variant_count => self.tcx.types.usize,
                     sym::needs_drop => self.tcx.types.bool,
                     sym::type_id => self.tcx.types.u64,
+                    sym::needs_finalizer => self.tcx.types.bool,
                     sym::type_name => self.tcx.mk_static_str(),
                     _ => bug!(),
                 };
