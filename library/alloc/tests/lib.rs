@@ -58,7 +58,6 @@ mod c_str;
 mod const_fns;
 mod cow_str;
 mod fmt;
-mod gc;
 mod heap;
 mod linked_list;
 mod rc;
