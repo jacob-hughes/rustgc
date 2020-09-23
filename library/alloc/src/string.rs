@@ -44,6 +44,7 @@
 
 use core::error::Error;
 use core::fmt;
+use core::gc::NoFinalize;
 use core::hash;
 #[cfg(not(no_global_oom_handling))]
 use core::iter::from_fn;
@@ -3001,3 +3002,6 @@ impl From<char> for String {
         c.to_string()
     }
 }
+
+#[unstable(feature = "gc", issue = "none")]
+impl NoFinalize for String {}
