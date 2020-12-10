@@ -765,7 +765,11 @@ symbols! {
         fundamental,
         future,
         future_trait,
+<<<<<<< HEAD
         gdb_script_file,
+=======
+        gc_layout,
+>>>>>>> c7017d9cf50 (Add intrinsic for querying type's GC layout)
         ge,
         gen_future,
         gen_kill,
@@ -1030,6 +1034,7 @@ symbols! {
         no_stack_check,
         no_start,
         no_std,
+        no_trace,
         nomem,
         non_ascii_idents,
         non_exhaustive,
@@ -1513,6 +1518,7 @@ symbols! {
         todo_macro,
         tool_attributes,
         tool_lints,
+        trace,
         trace_macros,
         track_caller,
         trait_alias,
