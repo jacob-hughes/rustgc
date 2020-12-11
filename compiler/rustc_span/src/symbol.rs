@@ -1051,6 +1051,7 @@ symbols! {
         not,
         notable_trait,
         note,
+        notrace,
         object_safe_for_dispatch,
         of,
         offset,
