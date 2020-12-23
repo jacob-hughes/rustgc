@@ -217,6 +217,9 @@ extern crate test;
 #[cfg(test)]
 mod testing;
 
+#[allow(unused_extern_crates)]
+extern crate libgc_internal;
+
 // Module with internal macros used by other modules (needs to be included before other modules).
 #[macro_use]
 mod macros;
