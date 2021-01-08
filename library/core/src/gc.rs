@@ -11,6 +11,10 @@ static MAX_LAYOUT: usize = crate::mem::size_of::<usize>() * 64;
 /// managed by the Gc which is expensive.
 pub trait ManageableContents {}
 
+/// A type that implements this trait will be conservatively marked by the
+/// collector. This takes precedence over `NoTrace`.
+pub trait Conservative {}
+
 #[unstable(feature = "gc", issue = "none")]
 #[cfg_attr(not(bootstrap), lang = "no_finalize")]
 pub trait NoFinalize {}
