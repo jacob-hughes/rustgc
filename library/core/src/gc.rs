@@ -1,8 +1,9 @@
 #![unstable(feature = "gc", issue = "none")]
 #![allow(missing_docs)]
 
-
 #[cfg(not(bootstrap))]
+static MAX_LAYOUT: usize = crate::mem::size_of::<usize>() * 64;
+
 #[unstable(feature = "gc", issue = "none")]
 #[lang = "manageable_contents"]
 /// This trait can be implemented on types where it is safe to allow the allow the collector to
@@ -22,8 +23,8 @@ pub trait NoFinalize {}
 ///
 /// The type T must be smaller or equal in size to `size_of::<usize> * 64`.
 pub unsafe fn gc_layout<T>() -> (u64, u64) {
-    debug_assert!(size_of::<T>() <= MAX_LAYOUT);
-    let layout = intrinsics::gc_layout::<T>();
+    debug_assert!(crate::mem::size_of::<T>() <= MAX_LAYOUT);
+    let layout = crate::intrinsics::gc_layout::<T>();
     (layout[0], layout[1])
 }
 
