@@ -59,6 +59,7 @@ mod errors;
 mod expect;
 mod for_loops_over_fallibles;
 pub mod hidden_unicode_codepoints;
+mod gc;
 mod internal;
 mod late;
 mod let_underscore;
@@ -101,6 +102,7 @@ use drop_forget_useless::*;
 use enum_intrinsics_non_enums::EnumIntrinsicsNonEnums;
 use for_loops_over_fallibles::*;
 use hidden_unicode_codepoints::*;
+use gc::*;
 use internal::*;
 use let_underscore::*;
 use map_unit_fn::*;
@@ -218,6 +220,7 @@ late_lint_methods!(
             UnusedAllocation: UnusedAllocation,
             // Depends on types used in type definitions
             MissingCopyImplementations: MissingCopyImplementations,
+            MisalignedGcPointers: MisalignedGcPointers,
             // Depends on referenced function signatures in expressions
             MutableTransmutes: MutableTransmutes,
             TypeAliasBounds: TypeAliasBounds,
