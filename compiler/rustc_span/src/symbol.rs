@@ -505,6 +505,7 @@ symbols! {
         concat,
         concat_bytes,
         concat_idents,
+        conservative,
         conservative_impl_trait,
         console,
         const_allocate,

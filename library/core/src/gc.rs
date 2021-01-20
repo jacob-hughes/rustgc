@@ -13,6 +13,7 @@ pub trait ManageableContents {}
 
 /// A type that implements this trait will be conservatively marked by the
 /// collector. This takes precedence over `NoTrace`.
+#[cfg_attr(not(bootstrap), lang = "conservative")]
 pub trait Conservative {}
 
 #[unstable(feature = "gc", issue = "none")]
