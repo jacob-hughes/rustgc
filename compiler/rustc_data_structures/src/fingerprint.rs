@@ -193,6 +193,7 @@ impl<D: Decoder> Decodable<D> for Fingerprint {
 // The wrapped `Fingerprint` is private to reduce the chance of a client
 // invoking undefined behavior by taking a reference to the packed field.
 #[cfg_attr(any(target_arch = "x86", target_arch = "x86_64"), repr(packed))]
+#[cfg_attr(not(bootstrap), allow(misaligned_gc_pointers))]
 #[derive(Eq, PartialEq, Ord, PartialOrd, Debug, Clone, Copy, Hash)]
 pub struct PackedFingerprint(Fingerprint);
 

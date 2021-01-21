@@ -1,4 +1,6 @@
 // run-pass
+#![allow(misaligned_gc_pointers)]
+
 #[repr(packed)]
 struct Packed<T: Copy>(#[allow(unused_tuple_struct_fields)] T);
 

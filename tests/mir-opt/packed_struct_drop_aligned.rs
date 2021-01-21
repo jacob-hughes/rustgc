@@ -1,4 +1,5 @@
 // ignore-wasm32-bare compiled with panic=abort by default
+#![allow(misaligned_gc_pointers)]
 
 
 // EMIT_MIR packed_struct_drop_aligned.main.SimplifyCfg-elaborate-drops.after.mir

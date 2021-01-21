@@ -2,6 +2,7 @@
 //
 
 #![crate_type = "lib"]
+#![allow(misaligned_gc_pointers)]
 
 #[repr(align(64))]
 pub struct Align64(i32);
