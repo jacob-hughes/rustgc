@@ -61,7 +61,6 @@ version = "0.0.0"
 dependencies = [
  "compiler_builtins",
  "core",
- "libgc_internal",
  "rand",
  "rand_xorshift",
 ]
@@ -4653,7 +4652,6 @@ dependencies = [
  "hashbrown 0.13.1",
  "hermit-abi 0.3.0",
  "libc",
- "libgc_internal",
  "miniz_oxide",
  "object",
  "panic_abort",
