@@ -767,11 +767,9 @@ symbols! {
         fundamental,
         future,
         future_trait,
-<<<<<<< HEAD
-        gdb_script_file,
-=======
         gc_layout,
->>>>>>> c7017d9cf50 (Add intrinsic for querying type's GC layout)
+        gcsp,
+        gdb_script_file,
         ge,
         gen_future,
         gen_kill,

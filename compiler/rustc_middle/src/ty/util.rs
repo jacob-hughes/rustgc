@@ -1078,6 +1078,14 @@ impl<'tcx> Ty<'tcx> {
         !self.is_conservative(tcx_at, param_env)
     }
 
+    pub fn is_gc_smart_pointer(
+        &'tcx self,
+        tcx_at: TyCtxtAt<'tcx>,
+        param_env: ty::ParamEnv<'tcx>,
+    ) -> bool {
+        tcx_at.is_gc_smart_pointer_raw(param_env.and(self))
+    }
+
     /// Fast path helper for testing if a type is `Freeze`.
     ///
     /// Returning true means the type is known to be `Freeze`. Returning
