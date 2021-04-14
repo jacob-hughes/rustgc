@@ -1246,6 +1246,8 @@ options! {
     #[rustc_lint_opt_deny_field_access("use `Session::must_emit_unwind_tables` instead of this field")]
     force_unwind_tables: Option<bool> = (None, parse_opt_bool, [TRACKED],
         "force use of unwind tables"),
+    gc_precise_marking: bool = (false, parse_bool, [TRACKED],
+        "allocate objects with support for precise marking"),
     incremental: Option<String> = (None, parse_opt_string, [UNTRACKED],
         "enable incremental compilation"),
     inline_threshold: Option<u32> = (None, parse_opt_number, [TRACKED],
