@@ -109,7 +109,6 @@ const PERMITTED_RUSTC_DEPENDENCIES: &[&str] = &[
     "adler",
     "ahash",
     "aho-corasick",
-    "allocator",
     "annotate-snippets",
     "ansi_term",
     "ar_archive_writer",
