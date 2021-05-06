@@ -1,6 +1,7 @@
 use crate::cmp::Ordering;
 use crate::convert::From;
 use crate::fmt;
+use crate::gc::NoTrace;
 use crate::hash;
 use crate::intrinsics::assert_unsafe_precondition;
 use crate::marker::Unsize;
@@ -63,6 +64,10 @@ impl<T: ?Sized> !Send for NonNull<T> {}
 // N.B., this impl is unnecessary, but should provide better error messages.
 #[stable(feature = "nonnull", since = "1.25.0")]
 impl<T: ?Sized> !Sync for NonNull<T> {}
+
+/// `NonNull` pointers are `NoTrace` if `T` is.
+#[stable(feature = "nonnull", since = "1.25.0")]
+impl<T: NoTrace> NoTrace for NonNull<T> {}
 
 impl<T: Sized> NonNull<T> {
     /// Creates a new `NonNull` that is dangling, but well-aligned.
