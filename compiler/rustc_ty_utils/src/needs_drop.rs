@@ -43,6 +43,36 @@ fn has_significant_drop_raw<'tcx>(
     res
 }
 
+fn needs_finalizer_raw<'tcx>(tcx: TyCtxt<'tcx>, query: ty::ParamEnvAnd<'tcx, Ty<'tcx>>) -> bool {
+    let finalizer_fields =
+        move |adt_def: &ty::AdtDef| tcx.adt_finalize_tys(adt_def.did).map(|tys| tys.iter());
+    let res = NeedsDropTypes::new(
+        tcx,
+        query.param_env,
+        query.value,
+        finalizer_fields,
+        DropCheckType::NeedsFinalize,
+    )
+    .next()
+    .is_some();
+    debug!("needs_finalize_raw({:?}) = {:?}", query, res);
+    res
+}
+
+enum DropCheckType {
+    NeedsDrop,
+    NeedsFinalize,
+}
+
+impl DropCheckType {
+    fn needs_finalizer(&self) -> bool {
+        match self {
+            DropCheckType::NeedsDrop => false,
+            DropCheckType::NeedsFinalize => true,
+        }
+    }
+}
+
 struct NeedsDropTypes<'tcx, F> {
     tcx: TyCtxt<'tcx>,
     param_env: ty::ParamEnv<'tcx>,
@@ -55,6 +85,10 @@ struct NeedsDropTypes<'tcx, F> {
     unchecked_tys: Vec<(Ty<'tcx>, usize)>,
     recursion_limit: Limit,
     adt_components: F,
+    /// The `needs_drop` and `needs_finalizer` rules are subtly different. This
+    /// field lets us reuse the `NeedsDropTypes` mechanism without heavy
+    /// refactoring which would make keeping up to date with upstream a pain.
+    drop_check_type: DropCheckType,
 }
 
 impl<'tcx, F> NeedsDropTypes<'tcx, F> {
@@ -63,6 +97,7 @@ impl<'tcx, F> NeedsDropTypes<'tcx, F> {
         param_env: ty::ParamEnv<'tcx>,
         ty: Ty<'tcx>,
         adt_components: F,
+        drop_check_type: DropCheckType,
     ) -> Self {
         let mut seen_tys = FxHashSet::default();
         seen_tys.insert(ty);
@@ -74,6 +109,7 @@ impl<'tcx, F> NeedsDropTypes<'tcx, F> {
             unchecked_tys: vec![(ty, 0)],
             recursion_limit: tcx.recursion_limit(),
             adt_components,
+            drop_check_type,
         }
     }
 }
@@ -94,6 +130,12 @@ where
                 // recursion limit error as well.
                 tcx.sess.emit_err(NeedsDropOverflow { query_ty: self.query_ty });
                 return Some(Err(AlwaysRequiresDrop));
+            }
+
+            if self.drop_check_type.needs_finalizer()
+                && ty.is_no_finalize_modulo_regions(tcx.at(DUMMY_SP), self.param_env)
+            {
+                return None;
             }
 
             let components = match needs_drop_components(ty, &tcx.data_layout) {
