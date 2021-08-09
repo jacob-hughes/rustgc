@@ -3004,4 +3004,4 @@ impl From<char> for String {
 }
 
 #[unstable(feature = "gc", issue = "none")]
-impl NoFinalize for String {}
+unsafe impl NoFinalize for String {}

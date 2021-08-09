@@ -2425,7 +2425,7 @@ impl<T: core::error::Error> core::error::Error for Box<T> {
     }
 }
 #[unstable(feature = "gc", issue = "none")]
-impl<T: NoFinalize> NoFinalize for Box<T> {}
+unsafe impl<T: NoFinalize> NoFinalize for Box<T> {}
 
 #[unstable(feature = "gc", issue = "none")]
-impl<T: NoFinalize, A: Allocator> NoFinalize for Box<T, A> {}
+unsafe impl<T: NoFinalize, A: Allocator> NoFinalize for Box<T, A> {}
