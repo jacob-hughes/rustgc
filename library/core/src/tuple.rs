@@ -1,7 +1,6 @@
 // See src/libstd/primitive_docs.rs for documentation.
 
 use crate::cmp::Ordering::{self, *};
-use crate::gc::NoFinalize;
 
 // Recursive macro for implementing n-ary tuple functions and operations
 //
