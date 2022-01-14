@@ -1249,7 +1249,7 @@ impl<'tcx> Ty<'tcx> {
                 // This doesn't depend on regions, so try to minimize distinct
                 // query keys used.
                 let erased = tcx.normalize_erasing_regions(param_env, query_ty);
-                tcx.needs_drop_raw(param_env.and(erased))
+                tcx.needs_finalizer_raw(param_env.and(erased))
             }
         }
     }
