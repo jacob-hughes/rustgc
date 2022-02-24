@@ -268,6 +268,7 @@ language_item_table! {
     DropInPlace,             sym::drop_in_place,       drop_in_place_fn,           Target::Fn,             GenericRequirement::Minimum(1);
     AllocLayout,             sym::alloc_layout,        alloc_layout,               Target::Struct,         GenericRequirement::None;
 
+    MakeCollectableLang,     sym::make_collectable_lang, make_collectable_lang_fn,        Target::Fn,             GenericRequirement::Minimum(1);
     Start,                   sym::start,               start_fn,                   Target::Fn,             GenericRequirement::Exact(1);
 
     EhPersonality,           sym::eh_personality,      eh_personality,             Target::Fn,             GenericRequirement::None;
