@@ -34,6 +34,10 @@ fn is_no_finalize_raw<'tcx>(tcx: TyCtxt<'tcx>, query: ty::ParamEnvAnd<'tcx, Ty<'
     is_item_raw(tcx, query, LangItem::NoFinalize)
 }
 
+fn is_collectable_raw<'tcx>(tcx: TyCtxt<'tcx>, query: ty::ParamEnvAnd<'tcx, Ty<'tcx>>) -> bool {
+    is_item_raw(tcx, query, LangItem::Collectable)
+}
+
 fn is_item_raw<'tcx>(
     tcx: TyCtxt<'tcx>,
     query: ty::ParamEnvAnd<'tcx, Ty<'tcx>>,
@@ -54,6 +58,7 @@ pub(crate) fn provide(providers: &mut Providers) {
         is_conservative_raw,
         is_no_trace_raw,
         is_no_finalize_raw,
+        is_collectable_raw,
         ..*providers
     };
 }

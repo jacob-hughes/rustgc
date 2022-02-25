@@ -1078,6 +1078,14 @@ impl<'tcx> Ty<'tcx> {
         !self.is_conservative(tcx_at, param_env)
     }
 
+    pub fn is_collectable(
+        &'tcx self,
+        tcx_at: TyCtxtAt<'tcx>,
+        param_env: ty::ParamEnv<'tcx>,
+    ) -> bool {
+        tcx_at.is_collectable_raw(param_env.and(self))
+    }
+
     /// Fast path helper for testing if a type is `Freeze`.
     ///
     /// Returning true means the type is known to be `Freeze`. Returning
