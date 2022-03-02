@@ -18,6 +18,7 @@ use rustc_middle::ty::adjustment::CustomCoerceUnsized;
 use rustc_middle::ty::query::TyCtxtAt;
 use rustc_middle::ty::{self, Ty};
 
+pub mod collectable_trait;
 mod collector;
 mod errors;
 mod partitioning;

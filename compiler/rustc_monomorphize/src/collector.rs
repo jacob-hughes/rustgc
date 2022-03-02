@@ -206,6 +206,8 @@ use crate::errors::{
     EncounteredErrorWhileInstantiating, LargeAssignmentsLint, RecursionLimit, TypeLengthLimit,
 };
 
+use crate::collectable_trait::{collect_mono, is_collectable_trait_method};
+
 #[derive(PartialEq)]
 pub enum MonoItemCollectionMode {
     Eager,
@@ -992,11 +994,20 @@ fn visit_instance_use<'tcx>(
                 output.push(create_fn_mono_item(tcx, instance, source));
             }
         }
+        ty::InstanceDef::Item(opts) => {
+            let mk_col_did = tcx.lang_items().require(LangItem::MakeCollectableLang);
+            if mk_col_did.is_ok() && opts.did == mk_col_did.unwrap() {
+                let fn_ty = instance.ty(tcx, ty::ParamEnv::reveal_all());
+                let fn_sig = fn_ty.fn_sig(tcx);
+                let arg_ty = fn_sig.input(0).skip_binder();
+                collect_mono(tcx, arg_ty, instance.substs, output);
+            }
+            output.push(create_fn_mono_item(tcx, instance, source));
+        }
         ty::InstanceDef::DropGlue(_, Some(_))
         | ty::InstanceDef::VTableShim(..)
         | ty::InstanceDef::ReifyShim(..)
         | ty::InstanceDef::ClosureOnceShim { .. }
-        | ty::InstanceDef::Item(..)
         | ty::InstanceDef::FnPtrShim(..)
         | ty::InstanceDef::CloneShim(..)
         | ty::InstanceDef::FnPtrAddrShim(..) => {
@@ -1019,6 +1030,10 @@ fn should_codegen_locally<'tcx>(tcx: TyCtxt<'tcx>, instance: &Instance<'tcx>) ->
 
     if def_id.is_local() {
         // Local items cannot be referred to locally without monomorphizing them locally.
+        return true;
+    }
+
+    if is_collectable_trait_method(tcx, def_id) {
         return true;
     }
 
@@ -1148,7 +1163,7 @@ fn find_vtable_types_for_unsizing<'tcx>(
 }
 
 #[instrument(skip(tcx), level = "debug", ret)]
-fn create_fn_mono_item<'tcx>(
+pub(crate) fn create_fn_mono_item<'tcx>(
     tcx: TyCtxt<'tcx>,
     instance: Instance<'tcx>,
     source: Span,
