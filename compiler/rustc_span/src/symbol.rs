@@ -1198,6 +1198,7 @@ symbols! {
         self_struct_ctor,
         semitransparent,
         set_collectable,
+        set_managed,
         shl,
         shl_assign,
         should_panic,
