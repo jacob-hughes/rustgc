@@ -6,6 +6,9 @@ use rustc_middle::ty;
 use rustc_middle::ty::subst::GenericArg;
 use rustc_middle::ty::subst::{Subst, SubstsRef};
 use rustc_span::DUMMY_SP;
+use rustc_middle::ty::layout::LayoutOf;
+use rustc_middle::ty::util::IntTypeExt;
+use rustc_codegen_ssa::mir::operand::OperandValue;
 
 use crate::builder::Builder;
 use crate::value::Value;
@@ -48,11 +51,37 @@ fn codegen_collectable_calls_for_fields<'ll, 'tcx>(
                 let place = builder.load_operand(place).deref(builder.cx());
                 codegen_collectable_calls_for_fields(builder, place, substs)
             },
-            ty::Adt(_adt_def, adt_substs) => {
+            ty::Adt(adt_def, adt_substs) => {
                 let set_col_did = match builder.tcx.lang_items().require(LangItem::SetCollectable) {
                     Ok(id) => id,
                     Err(err) => builder.tcx.sess.fatal(&err),
                 };
+
+                if adt_def.is_enum() {
+                    // get discr rvalue
+                    let discr_ty = adt_def.repr.discr_type().to_ty(builder.tcx);
+                    let discr = builder.load_operand(place).deref(builder.cx()).codegen_get_discr(builder, discr_ty);
+                    let _discr_rv = OperandRef {
+                        val: OperandValue::Immediate(discr),
+                        layout: builder.cx().layout_of(discr_ty),
+                    };
+
+                    // bx.switch(discr_rv.immediate(), 
+
+
+                    // let successor = self.build_block(
+
+                    // Codegen a basic block which calls `Collectable` for all
+                    // fields in each enum variant.
+                    let mut blocks = Vec::with_capacity(adt_def.variants.len());
+                    let mut targets = SwitchTargets::new(
+                    for (variant_index, discr) in adt_def.discriminants(builder.tcx) {
+                        let variant = &adt_def.variants[variant_index];
+                        let name = &format!("{:?}_variant_{:?}_collect_calls_{:?}", builder.bb, bx.tcx.def_path_str(variant.def_id), target);
+                        let bx = self.new_block(mir_block);
+                        blocks.push(self.new_block(mir_block));
+                    }
+                }
 
                 // First, add a call to the current ADT's collectable trait if
                 // it exists.
