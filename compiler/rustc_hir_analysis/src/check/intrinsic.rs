@@ -88,6 +88,7 @@ pub fn intrinsic_operation_unsafety(tcx: TyCtxt<'_>, intrinsic_id: DefId) -> hir
         | sym::needs_finalizer
         | sym::needs_tracing
         | sym::gc_layout
+        | sym::make_collectable
         | sym::caller_location
         | sym::add_with_overflow
         | sym::sub_with_overflow
