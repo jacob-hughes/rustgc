@@ -159,6 +159,9 @@ top_level_options!(
         assert_incr_state: Option<IncrementalStateAssertion> [UNTRACKED],
 
         unstable_opts: UnstableOptions [SUBSTRUCT],
+        // Attempts to remove finalizers for GC'd values where dropping is not
+        // necessary.
+        gc_optimize_finalizers: bool [TRACKED],
         prints: Vec<PrintRequest> [UNTRACKED],
         cg: CodegenOptions [SUBSTRUCT],
         externs: Externs [UNTRACKED],
