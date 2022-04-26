@@ -154,7 +154,7 @@ use core::error::Error;
 use core::fmt;
 use core::future::Future;
 use core::gc::Collectable;
-use core::gc::NoFinalize;
+use core::gc::{NoFinalize, OnlyFinalizeComponents};
 use core::hash::{Hash, Hasher};
 use core::iter::FusedIterator;
 use core::marker::Tuple;
@@ -2432,7 +2432,13 @@ unsafe impl<T: NoFinalize> NoFinalize for Box<T> {}
 unsafe impl<T: NoFinalize, A: Allocator> NoFinalize for Box<T, A> {}
 
 #[unstable(feature = "gc", issue = "none")]
-unsafe impl<T, A: Allocator> Collectable for Box<T, A> {
+unsafe impl<T: ?Sized> OnlyFinalizeComponents for Box<T> {}
+
+#[unstable(feature = "gc", issue = "none")]
+unsafe impl<T: ?Sized, A: Allocator> OnlyFinalizeComponents for Box<T, A> {}
+
+#[unstable(feature = "gc", issue = "none")]
+unsafe impl<T: ?Sized, A: Allocator> Collectable for Box<T, A> {
     unsafe fn set_collectable(&self) {
         unsafe {
             crate::alloc::set_managed(self.0.as_ptr() as *mut u8);

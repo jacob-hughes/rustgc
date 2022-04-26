@@ -726,6 +726,7 @@ symbols! {
         float_to_int_unchecked,
         floorf32,
         floorf64,
+        flz_comps,
         fmaf32,
         fmaf64,
         fmt,

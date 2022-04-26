@@ -1086,6 +1086,14 @@ impl<'tcx> Ty<'tcx> {
         tcx_at.is_collectable_raw(param_env.and(self))
     }
 
+    pub fn must_check_component_tys_for_finalizer(
+        &'tcx self,
+        tcx_at: TyCtxtAt<'tcx>,
+        param_env: ty::ParamEnv<'tcx>,
+    ) -> bool {
+        tcx_at.must_check_component_tys_for_finalizer_raw(param_env.and(self))
+    }
+
     /// Fast path helper for testing if a type is `Freeze`.
     ///
     /// Returning true means the type is known to be `Freeze`. Returning
