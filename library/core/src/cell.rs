@@ -238,6 +238,7 @@
 use crate::cmp::Ordering;
 use crate::fmt::{self, Debug, Display};
 use crate::marker::{PhantomData, Unsize};
+use crate::gc::NoFinalize;
 use crate::mem;
 use crate::ops::{CoerceUnsized, Deref, DerefMut, DispatchFromDyn};
 use crate::ptr::{self, NonNull};
@@ -296,6 +297,9 @@ pub struct Cell<T: ?Sized> {
 
 #[stable(feature = "rust1", since = "1.0.0")]
 unsafe impl<T: ?Sized> Send for Cell<T> where T: Send {}
+
+#[unstable(feature = "gc", issue = "none")]
+unsafe impl<T: ?Sized> NoFinalize for Cell<T> where T: NoFinalize {}
 
 // Note that this negative impl isn't strictly necessary for correctness,
 // as `Cell` wraps `UnsafeCell`, which is itself `!Sync`.
