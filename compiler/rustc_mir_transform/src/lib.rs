@@ -85,6 +85,7 @@ mod multiple_return_terminators;
 mod normalize_array_len;
 mod nrvo;
 mod ref_prop;
+mod prevent_early_finalization;
 mod remove_noop_landing_pads;
 mod remove_storage_markers;
 mod remove_uninit_drops;
@@ -281,6 +282,7 @@ fn mir_const(tcx: TyCtxt<'_>, def: LocalDefId) -> &Steal<Body<'_>> {
             &Lint(function_item_references::FunctionItemReferences),
             // What we need to do constant evaluation.
             &simplify::SimplifyCfg::Initial,
+            &prevent_early_finalization::PreventEarlyFinalization,
             &rustc_peek::SanityCheck, // Just a lint
         ],
         None,
