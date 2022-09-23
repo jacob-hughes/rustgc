@@ -52,6 +52,7 @@ mod add_call_guards;
 mod add_moves_for_packed_drops;
 mod add_retag;
 mod check_const_item_mutation;
+mod check_finalizers;
 mod check_packed_ref;
 mod remove_place_mention;
 // This pass is public to allow external drivers to perform MIR cleanup
@@ -345,7 +346,12 @@ fn mir_promoted(
     pm::run_passes(
         tcx,
         &mut body,
-        &[&promote_pass, &simplify::SimplifyCfg::PromoteConsts, &coverage::InstrumentCoverage],
+        &[
+            &promote_pass,
+            &simplify::SimplifyCfg::PromoteConsts,
+            &coverage::InstrumentCoverage,
+            &check_finalizers::CheckFinalizers,
+        ],
         Some(MirPhase::Analysis(AnalysisPhase::Initial)),
     );
 
