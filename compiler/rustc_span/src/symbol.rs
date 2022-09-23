@@ -770,6 +770,7 @@ symbols! {
         future,
         future_trait,
         gc,
+        gc_ctor,
         gc_layout,
         gdb_script_file,
         ge,

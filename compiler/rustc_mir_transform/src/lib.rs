@@ -49,6 +49,7 @@ mod add_call_guards;
 mod add_moves_for_packed_drops;
 mod add_retag;
 mod check_const_item_mutation;
+mod check_finalizers;
 mod check_packed_ref;
 pub mod check_unsafety;
 mod remove_place_mention;
@@ -283,6 +284,7 @@ fn mir_const(tcx: TyCtxt<'_>, def: LocalDefId) -> &Steal<Body<'_>> {
             // What we need to do constant evaluation.
             &simplify::SimplifyCfg::Initial,
             &prevent_early_finalization::PreventEarlyFinalization,
+            &check_finalizers::CheckFinalizers,
             &rustc_peek::SanityCheck, // Just a lint
         ],
         None,
