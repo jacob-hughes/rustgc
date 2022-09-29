@@ -284,7 +284,6 @@ fn mir_const(tcx: TyCtxt<'_>, def: LocalDefId) -> &Steal<Body<'_>> {
             // What we need to do constant evaluation.
             &simplify::SimplifyCfg::Initial,
             &prevent_early_finalization::PreventEarlyFinalization,
-            &check_finalizers::CheckFinalizers,
             &rustc_peek::SanityCheck, // Just a lint
         ],
         None,
@@ -318,7 +317,7 @@ fn mir_promoted(
     pm::run_passes(
         tcx,
         &mut body,
-        &[&promote_pass, &simplify::SimplifyCfg::PromoteConsts, &coverage::InstrumentCoverage],
+        &[&promote_pass, &simplify::SimplifyCfg::PromoteConsts, &coverage::InstrumentCoverage, &check_finalizers::CheckFinalizers],
         Some(MirPhase::Analysis(AnalysisPhase::Initial)),
     );
 
