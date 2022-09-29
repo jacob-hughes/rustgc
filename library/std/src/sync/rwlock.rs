@@ -90,6 +90,8 @@ pub struct RwLock<T: ?Sized> {
 unsafe impl<T: ?Sized + Send> Send for RwLock<T> {}
 #[stable(feature = "rust1", since = "1.0.0")]
 unsafe impl<T: ?Sized + Send + Sync> Sync for RwLock<T> {}
+#[unstable(feature = "gc", issue = "none")]
+unsafe impl<T: ?Sized + FinalizerSafe> FinalizerSafe for RwLock<T> {}
 
 /// RAII structure used to release the shared read access of a lock when
 /// dropped.
@@ -120,6 +122,9 @@ impl<T: ?Sized> !Send for RwLockReadGuard<'_, T> {}
 
 #[stable(feature = "rwlock_guard_sync", since = "1.23.0")]
 unsafe impl<T: ?Sized + Sync> Sync for RwLockReadGuard<'_, T> {}
+
+#[unstable(feature = "gc", issue = "none")]
+unsafe impl<T: ?Sized + FinalizerSafe> FinalizerSafe for RwLockReadGuard<'_, T> {}
 
 /// RAII structure used to release the exclusive write access of a lock when
 /// dropped.

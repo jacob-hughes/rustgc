@@ -845,6 +845,9 @@ impl !Send for Args {}
 #[stable(feature = "env_unimpl_send_sync", since = "1.26.0")]
 impl !Sync for Args {}
 
+#[unstable(feature = "gc", issue = "none")]
+impl !FinalizerSafe for Args {}
+
 #[stable(feature = "env", since = "1.0.0")]
 impl Iterator for Args {
     type Item = String;
@@ -886,6 +889,9 @@ impl !Send for ArgsOs {}
 
 #[stable(feature = "env_unimpl_send_sync", since = "1.26.0")]
 impl !Sync for ArgsOs {}
+
+#[unstable(feature = "gc", issue = "none")]
+impl !FinalizerSafe for ArgsOs {}
 
 #[stable(feature = "env", since = "1.0.0")]
 impl Iterator for ArgsOs {
