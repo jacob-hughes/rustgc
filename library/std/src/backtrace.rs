@@ -152,6 +152,9 @@ pub struct BacktraceFrame {
     symbols: Vec<BacktraceSymbol>,
 }
 
+#[unstable(feature = "gc", issue = "none")]
+unsafe impl FinalizerSafe for BacktraceFrame {}
+
 #[derive(Debug)]
 enum RawFrame {
     Actual(backtrace_rs::Frame),
