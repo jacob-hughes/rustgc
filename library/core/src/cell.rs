@@ -237,8 +237,8 @@
 
 use crate::cmp::Ordering;
 use crate::fmt::{self, Debug, Display};
-use crate::marker::{PhantomData, Unsize};
 use crate::gc::NoFinalize;
+use crate::marker::{FinalizerSafe, PhantomData, Unsize};
 use crate::mem;
 use crate::ops::{CoerceUnsized, Deref, DerefMut, DispatchFromDyn};
 use crate::ptr::{self, NonNull};
@@ -300,6 +300,9 @@ unsafe impl<T: ?Sized> Send for Cell<T> where T: Send {}
 
 #[unstable(feature = "gc", issue = "none")]
 unsafe impl<T: ?Sized> NoFinalize for Cell<T> where T: NoFinalize {}
+
+#[unstable(feature = "gc", issue = "none")]
+impl<T: ?Sized> !FinalizerSafe for Cell<T> {}
 
 // Note that this negative impl isn't strictly necessary for correctness,
 // as `Cell` wraps `UnsafeCell`, which is itself `!Sync`.
@@ -1222,6 +1225,9 @@ unsafe impl<T: ?Sized> Send for RefCell<T> where T: Send {}
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T: ?Sized> !Sync for RefCell<T> {}
 
+#[unstable(feature = "gc", issue = "none")]
+impl<T: ?Sized> !FinalizerSafe for RefCell<T> {}
+
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T: Clone> Clone for RefCell<T> {
     /// # Panics
@@ -1993,6 +1999,8 @@ pub struct UnsafeCell<T: ?Sized> {
 
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T: ?Sized> !Sync for UnsafeCell<T> {}
+#[unstable(feature = "gc", issue = "none")]
+impl<T: ?Sized> !FinalizerSafe for UnsafeCell<T> {}
 
 impl<T> UnsafeCell<T> {
     /// Constructs a new instance of `UnsafeCell` which will wrap the specified
@@ -2170,6 +2178,9 @@ pub struct SyncUnsafeCell<T: ?Sized> {
 
 #[unstable(feature = "sync_unsafe_cell", issue = "95439")]
 unsafe impl<T: ?Sized + Sync> Sync for SyncUnsafeCell<T> {}
+
+#[unstable(feature = "gc", issue = "none")]
+unsafe impl<T: ?Sized + FinalizerSafe> FinalizerSafe for SyncUnsafeCell<T> {}
 
 #[unstable(feature = "sync_unsafe_cell", issue = "95439")]
 impl<T> SyncUnsafeCell<T> {
