@@ -195,7 +195,7 @@
 use crate::cmp::Ordering;
 use crate::fmt::{self, Debug, Display};
 use crate::gc::NoFinalize;
-use crate::marker::{PhantomData, Unsize};
+use crate::marker::{FinalizerSafe, PhantomData, Unsize};
 use crate::mem;
 use crate::ops::{CoerceUnsized, Deref, DerefMut};
 use crate::ptr::{self, NonNull};
@@ -251,6 +251,9 @@ unsafe impl<T: ?Sized> Send for Cell<T> where T: Send {}
 
 #[unstable(feature = "gc", issue = "none")]
 unsafe impl<T: ?Sized> NoFinalize for Cell<T> where T: NoFinalize {}
+
+#[unstable(feature = "gc", issue = "none")]
+impl<T: ?Sized> !FinalizerSafe for Cell<T> {}
 
 // Note that this negative impl isn't strictly necessary for correctness,
 // as `Cell` wraps `UnsafeCell`, which is itself `!Sync`.
@@ -1157,6 +1160,9 @@ unsafe impl<T: ?Sized> Send for RefCell<T> where T: Send {}
 
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T: ?Sized> !Sync for RefCell<T> {}
+
+#[unstable(feature = "gc", issue = "none")]
+impl<T: ?Sized> !FinalizerSafe for RefCell<T> {}
 
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T: Clone> Clone for RefCell<T> {

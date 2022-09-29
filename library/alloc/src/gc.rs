@@ -50,7 +50,7 @@ use core::{
     cmp::Ordering,
     fmt,
     hash::{Hash, Hasher},
-    marker::{PhantomData, Unsize},
+    marker::{FinalizerSafe, PhantomData, Unsize},
     mem::{ManuallyDrop, MaybeUninit},
     ops::{CoerceUnsized, Deref, DispatchFromDyn, Receiver},
     ptr::{null_mut, NonNull},
@@ -81,6 +81,15 @@ pub struct Gc<T: ?Sized> {
 
 unsafe impl<T: ?Sized + Send> Send for Gc<T> {}
 unsafe impl<T: ?Sized + Sync + Send> Sync for Gc<T> {}
+
+// In non-topological finalization, it is unsound to deref any fields of type
+// `Gc` from within a finalizer. This is because it could have been finalized
+// first, thus resulting in a dangling reference. Marking this as
+// `!FinalizerSafe` will give a nice compiler error if the user does so.
+//
+// TODO: Make this conditional based on whether -DTOPOLOGICAL_FINALIZATION flag
+// is passed to the compiler.
+impl<T: ?Sized> !FinalizerSafe for Gc<T> {}
 
 impl<T: ?Sized> !NoTrace for Gc<T> {}
 
