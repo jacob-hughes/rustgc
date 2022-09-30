@@ -187,7 +187,6 @@ impl<'a, 'tcx> Visitor<'tcx> for ProjectionChecker<'a, 'tcx> {
         for (_, proj) in place_ref.iter_projections() {
             match proj {
                 ProjectionElem::Field(_, ty) => {
-                    // if (!self.cx.is_send(ty) && !self.cx.is_sync(ty))
                     if !self.cx.is_finalizer_safe(ty) {
                         let span = self.body.source_info(location).span;
                         let arg =
