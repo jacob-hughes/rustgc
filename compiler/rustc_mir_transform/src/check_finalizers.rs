@@ -65,7 +65,7 @@ impl<'tcx> FinalizationCtxt<'tcx> {
         // all the `Drop` impls. If we find any, we have to check that there are
         // no unsound projections into fields in their drop method body. More
         // specifically: if one of the drop methods dereferences a field which
-        // is !Send, !Sync, or !FinalizerSafe, we must throw an error.
+        // is !FinalizerSafe, we must throw an error.
         match ty.kind() {
             ty::Infer(ty::FreshIntTy(_))
             | ty::Infer(ty::FreshFloatTy(_))
