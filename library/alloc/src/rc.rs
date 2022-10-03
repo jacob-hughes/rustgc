@@ -2160,6 +2160,8 @@ pub struct Weak<T: ?Sized> {
 impl<T: ?Sized> !marker::Send for Weak<T> {}
 #[stable(feature = "rc_weak", since = "1.4.0")]
 impl<T: ?Sized> !marker::Sync for Weak<T> {}
+#[unstable(feature = "gc", issue = "none")]
+impl<T: ?Sized> !marker::FinalizerSafe for Weak<T> {}
 
 #[unstable(feature = "coerce_unsized", issue = "27732")]
 impl<T: ?Sized + Unsize<U>, U: ?Sized> CoerceUnsized<Weak<U>> for Weak<T> {}

@@ -1,6 +1,7 @@
 use core::iter::FusedIterator;
 use core::ptr::{self, NonNull};
 use core::{fmt, mem};
+use core::marker::FinalizerSafe;
 
 use crate::alloc::{Allocator, Global};
 
@@ -50,6 +51,8 @@ impl<T: fmt::Debug, A: Allocator> fmt::Debug for Drain<'_, T, A> {
 unsafe impl<T: Sync, A: Allocator + Sync> Sync for Drain<'_, T, A> {}
 #[stable(feature = "drain", since = "1.6.0")]
 unsafe impl<T: Send, A: Allocator + Send> Send for Drain<'_, T, A> {}
+#[unstable(feature = "gc", issue = "none")]
+unsafe impl<T: FinalizerSafe, A: Allocator + FinalizerSafe> FinalizerSafe for Drain<'_, T, A> {}
 
 #[stable(feature = "drain", since = "1.6.0")]
 impl<T, A: Allocator> Drop for Drain<'_, T, A> {

@@ -925,6 +925,13 @@ impl<'tcx> LocalDecl<'tcx> {
         }
     }
 
+    pub fn is_ref_to_self(&self) -> bool {
+        matches!(
+            self.local_info,
+            Some(box LocalInfo::User(ClearCrossCrate::Set(BindingForm::ImplicitSelf(..))))
+        )
+    }
+
     /// Returns `true` if this is a DerefTemp
     pub fn is_deref_temp(&self) -> bool {
         match self.local_info {

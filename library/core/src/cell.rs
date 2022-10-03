@@ -1881,6 +1881,8 @@ pub struct UnsafeCell<T: ?Sized> {
 
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T: ?Sized> !Sync for UnsafeCell<T> {}
+#[unstable(feature = "gc", issue = "none")]
+impl<T: ?Sized> !FinalizerSafe for UnsafeCell<T> {}
 
 impl<T> UnsafeCell<T> {
     /// Constructs a new instance of `UnsafeCell` which will wrap the specified
@@ -2047,6 +2049,9 @@ pub struct SyncUnsafeCell<T: ?Sized> {
 
 #[unstable(feature = "sync_unsafe_cell", issue = "95439")]
 unsafe impl<T: ?Sized + Sync> Sync for SyncUnsafeCell<T> {}
+
+#[unstable(feature = "gc", issue = "none")]
+unsafe impl<T: ?Sized + FinalizerSafe> FinalizerSafe for SyncUnsafeCell<T> {}
 
 #[unstable(feature = "sync_unsafe_cell", issue = "95439")]
 impl<T> SyncUnsafeCell<T> {

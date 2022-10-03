@@ -482,8 +482,6 @@ impl<T: ?Sized> !Sync for *const T {}
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T: ?Sized> !Sync for *mut T {}
 
-#[unstable(feature = "gc", issue = "none")]
-#[cfg_attr(not(test), rustc_diagnostic_item = "FinalizerSafe")]
 /// Types for which it is safe to use inside a finalizer.
 ///
 /// A `Gc` will finalize values on a separate thread. This means that a value
@@ -495,6 +493,8 @@ impl<T: ?Sized> !Sync for *mut T {}
 /// implementation as part of a finalizer. It does not affect the `Send` +
 /// `Sync` status of a type, so implementating it does not have any adverse
 /// affects when used outside a `Gc`.
+#[unstable(feature = "gc", issue = "none")]
+#[cfg_attr(not(test), rustc_diagnostic_item = "FinalizerSafe")]
 pub unsafe auto trait FinalizerSafe {
     // empty.
 }
@@ -706,6 +706,11 @@ mod impls {
     unsafe impl<T: Sync + ?Sized> Send for &T {}
     #[stable(feature = "rust1", since = "1.0.0")]
     unsafe impl<T: Send + ?Sized> Send for &mut T {}
+
+    #[unstable(feature = "gc", issue = "none")]
+    unsafe impl<T: FinalizerSafe + ?Sized> FinalizerSafe for &T {}
+    #[unstable(feature = "gc", issue = "none")]
+    unsafe impl<T: FinalizerSafe + ?Sized> FinalizerSafe for &mut T {}
 }
 
 /// Compiler-internal trait used to indicate the type of enum discriminants.

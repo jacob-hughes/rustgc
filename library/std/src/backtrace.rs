@@ -451,6 +451,8 @@ impl LazilyResolvedCapture {
 // So long as `Capture` is `Sync`, `LazilyResolvedCapture` is too
 unsafe impl Sync for LazilyResolvedCapture where Capture: Sync {}
 
+unsafe impl FinalizerSafe for LazilyResolvedCapture where Capture: FinalizerSafe {}
+
 impl Capture {
     fn resolve(&mut self) {
         // If we're already resolved, nothing to do!

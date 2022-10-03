@@ -116,7 +116,7 @@ impl<'tcx> FinalizationCtxt<'tcx> {
                         .unwrap()
                         .unwrap();
                     let mir = self.tcx.instance_mir(instance.def);
-                    let mut checker = ProjectionChecker { cx: self, body: mir };
+                    let mut checker = ProjectionChecker { cx: self, body: mir, banned_locals: Vec::new() };
                     checker.visit_body(&mir);
                 }
 
@@ -175,6 +175,45 @@ impl<'tcx> FinalizationCtxt<'tcx> {
 struct ProjectionChecker<'a, 'tcx> {
     cx: &'a FinalizationCtxt<'tcx>,
     body: &'a Body<'tcx>,
+    banned_locals: Vec<Local>,
+}
+
+impl<'a, 'tcx> ProjectionChecker<'a, 'tcx> {
+    fn emit_err(&self, ty: Ty<'tcx>, span: Span) {
+        let arg =
+            self.cx.tcx.sess.source_map().span_to_snippet(self.cx.arg).unwrap();
+        let mut err = self.cx.tcx.sess.struct_span_err(
+            self.cx.arg,
+            format!("`{arg}` cannot be safely finalized.",),
+        );
+        if self.cx.is_gc(ty) {
+            err.span_label(
+                self.cx.arg,
+                "has a drop method which cannot be safely finalized.",
+            );
+            err.span_label(
+                span,
+                "caused by the expression in `fn drop(&mut)` here because",
+            );
+            err.span_label(span, "it uses another `Gc` type.");
+            err.help("`Gc` finalizers are unordered, so this field may have already been dropped. It is not safe to dereference.");
+        } else {
+            err.span_label(
+                self.cx.arg,
+                "has a drop method which cannot be safely finalized.",
+            );
+            err.span_label(
+                span,
+                "caused by the expression in `fn drop(&mut)` here because",
+            );
+            err.span_label(
+                span,
+                "it uses a type which is not safe to use in a finalizer.",
+            );
+            err.help("`Gc` runs finalizers on a separate thread, so drop methods\nmust only use values whose types implement `Send + Sync` or `FinalizerSafe`.");
+        }
+        err.emit();
+    }
 }
 
 impl<'a, 'tcx> Visitor<'tcx> for ProjectionChecker<'a, 'tcx> {
@@ -189,44 +228,79 @@ impl<'a, 'tcx> Visitor<'tcx> for ProjectionChecker<'a, 'tcx> {
                 ProjectionElem::Field(_, ty) => {
                     if !self.cx.is_finalizer_safe(ty) {
                         let span = self.body.source_info(location).span;
-                        let arg =
-                            self.cx.tcx.sess.source_map().span_to_snippet(self.cx.arg).unwrap();
-                        let mut err = self.cx.tcx.sess.struct_span_err(
-                            self.cx.arg,
-                            format!("`{arg}` cannot be safely finalized.",),
-                        );
-                        if self.cx.is_gc(ty) {
-                            err.span_label(
-                                self.cx.arg,
-                                "has a drop method which cannot be safely finalized.",
-                            );
-                            err.span_label(
-                                span,
-                                "caused by the expression in `fn drop(&mut)` here because",
-                            );
-                            err.span_label(span, "it uses another `Gc` type.");
-                            err.help("`Gc` finalizers are unordered, so this field may have already been dropped. It is not safe to dereference.");
-                        } else {
-                            err.span_label(
-                                self.cx.arg,
-                                "has a drop method which cannot be safely finalized.",
-                            );
-                            err.span_label(
-                                span,
-                                "caused by the expression in `fn drop(&mut)` here because",
-                            );
-                            err.span_label(
-                                span,
-                                "it uses a type which is not safe to use in a finalizer.",
-                            );
-                            err.help("`Gc` runs finalizers on a separate thread, so drop methods\nmust only use values whose types implement `Send + Sync` or `FinalizerSafe`.");
-                        }
-                        err.emit();
+                        self.emit_err(ty, span);
                     }
                 }
                 _ => (),
             }
         }
         self.super_projection(place_ref, context, location);
+    }
+
+    fn visit_assign(&mut self, place: &Place<'tcx>, rvalue: &Rvalue<'tcx>, _location: Location) {
+        match rvalue {
+            Rvalue::Use(op) => {
+                match op {
+                    Operand::Copy(p) | Operand::Move(p) => {
+                        if self.banned_locals.contains(&p.local) {
+                            self.banned_locals.push(place.local);
+                        }
+                    },
+                    _ => eprintln!("Found unused rvalue {:?}", rvalue),
+                }
+            },
+            Rvalue::Ref(.., p) => {
+                let decl = &self.body.local_decls()[p.local];
+                eprintln!("{:?}", decl.local_info);
+                eprintln!("{:?}", decl.internal);
+                // if decl.is_ref_to_self() || decl.is_ref_to_thread_local() {
+                eprintln!("found rvalue: {:?}", rvalue);
+                if decl.is_ref_to_self()  || self.banned_locals.contains(&p.local) {
+                    self.banned_locals.push(place.local);
+                }
+            }
+            _ => eprintln!("unused {:?}", rvalue),
+        }
+    }
+
+    fn visit_terminator(&mut self, terminator: &Terminator<'tcx>, location: Location) {
+        match terminator.kind {
+            TerminatorKind::Call { ref args, .. } => {
+                for arg in args.iter() {
+                    if let Operand::Move(ref place) = arg {
+                        eprintln!("Checking place {:?}", place.local);
+                        eprintln!("In banned list: {:?}", self.banned_locals);
+                        if self.banned_locals.contains(&place.local) {
+                            // A self or thread_local ref has been passed as an
+                            // argument to a call inside `drop`. This means we
+                            // must emit an error here because because that call
+                            // might do something with that reference in a way
+                            // that is not finalizer safe (we have no way of
+                            // knowing!).
+                            //
+                            // There is no need to check the type here. The fact
+                            // that the MIR for this `drop` is being visited
+                            // means that the receiver type is not FianlizerSafe.
+                            //
+                            // It's also only necessary to check the receiver
+                            // (and its field projections) because it was moved
+                            // to a finalizer thread by the collector. Other
+                            // locals in this `drop` method can be
+                            // `!FinalizerSafe` because they would have either been:
+                            //
+                            // 1. Instantiated on the finalizer thread inside of
+                            //    `Self::drop`'s definition.
+                            //
+                            // 2. A static global, which, if mutable, is unsafe
+                            //    to access anyway.
+                            let span = self.body.source_info(location).span;
+                            let ty = arg.ty(self.body, self.cx.tcx);
+                            self.emit_err(ty, span);
+                        }
+                        }
+                    }
+                },
+            _ => (),
+        }
     }
 }

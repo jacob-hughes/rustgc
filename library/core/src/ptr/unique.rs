@@ -1,6 +1,6 @@
 use crate::convert::From;
 use crate::fmt;
-use crate::marker::{PhantomData, Unsize};
+use crate::marker::{PhantomData, Unsize, FinalizerSafe};
 use crate::ops::{CoerceUnsized, DispatchFromDyn};
 use crate::ptr::NonNull;
 
@@ -51,6 +51,9 @@ pub struct Unique<T: ?Sized> {
 /// `Unique` must enforce it.
 #[unstable(feature = "ptr_internals", issue = "none")]
 unsafe impl<T: Send + ?Sized> Send for Unique<T> {}
+
+#[unstable(feature = "gc", issue = "none")]
+unsafe impl<T: FinalizerSafe + ?Sized> FinalizerSafe for Unique<T> {}
 
 #[unstable(feature = "gc", issue = "none")]
 unsafe impl<T: ?Sized> OnlyFinalizeComponents for Unique<T> {}
