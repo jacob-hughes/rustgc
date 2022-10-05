@@ -193,7 +193,7 @@ impl<'a, 'tcx> ProjectionChecker<'a, 'tcx> {
             );
             err.span_label(
                 span,
-                "caused by the expression in `fn drop(&mut)` here because",
+                "caused by the expression here in `fn drop(&mut)` because",
             );
             err.span_label(span, "it uses another `Gc` type.");
             err.help("`Gc` finalizers are unordered, so this field may have already been dropped. It is not safe to dereference.");
@@ -263,14 +263,13 @@ impl<'a, 'tcx> Visitor<'tcx> for ProjectionChecker<'a, 'tcx> {
         }
     }
 
-    fn visit_terminator(&mut self, terminator: &Terminator<'tcx>, location: Location) {
-        match terminator.kind {
-            TerminatorKind::Call { ref args, .. } => {
-                for arg in args.iter() {
-                    if let Operand::Move(ref place) = arg {
-                        eprintln!("Checking place {:?}", place.local);
-                        eprintln!("In banned list: {:?}", self.banned_locals);
-                        if self.banned_locals.contains(&place.local) {
+        fn visit_terminator(&mut self, terminator: &Terminator<'tcx>, location: Location) {
+            if let TerminatorKind::Call{ref args, ..} = terminator.kind {
+                for caller_arg in self.body.args_iter() {
+                    let recv_ty = self.body.local_decls()[caller_arg].ty;
+                    for arg in args.iter() {
+                        let arg_ty = arg.ty(self.body, self.cx.tcx);
+                        if arg_ty == recv_ty {
                             // A self or thread_local ref has been passed as an
                             // argument to a call inside `drop`. This means we
                             // must emit an error here because because that call
@@ -294,13 +293,10 @@ impl<'a, 'tcx> Visitor<'tcx> for ProjectionChecker<'a, 'tcx> {
                             // 2. A static global, which, if mutable, is unsafe
                             //    to access anyway.
                             let span = self.body.source_info(location).span;
-                            let ty = arg.ty(self.body, self.cx.tcx);
-                            self.emit_err(ty, span);
-                        }
+                            self.emit_err(arg_ty, span);
                         }
                     }
-                },
-            _ => (),
+                }
+            }
         }
     }
-}
