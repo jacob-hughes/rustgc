@@ -1012,17 +1012,6 @@ impl<'tcx> Ty<'tcx> {
         self.is_trivially_pure_clone_copy() || tcx.is_copy_raw(param_env.and(self))
     }
 
-    // Checks whether values of this type `T` implement the `NoFinalize` trait
-    // -- non-finalizable types are those that can be used inside a Gc without a
-    // finalizer method required when their memory is reclaimed.
-    pub fn is_no_finalize_modulo_regions(
-        &'tcx self,
-        tcx_at: TyCtxtAt<'tcx>,
-        param_env: ty::ParamEnv<'tcx>,
-    ) -> bool {
-        tcx_at.is_no_finalize_raw(param_env.and(self))
-    }
-
     /// Checks whether values of this type `T` have a size known at
     /// compile time (i.e., whether `T: Sized`). Lifetimes are ignored
     /// for the purposes of this check, so it can be an
@@ -1086,12 +1075,8 @@ impl<'tcx> Ty<'tcx> {
         tcx_at.is_collectable_raw(param_env.and(self))
     }
 
-    pub fn must_check_component_tys_for_finalizer(
-        &'tcx self,
-        tcx_at: TyCtxtAt<'tcx>,
-        param_env: ty::ParamEnv<'tcx>,
-    ) -> bool {
-        tcx_at.must_check_component_tys_for_finalizer_raw(param_env.and(self))
+    pub fn finalizer_optional(self, tcx_at: TyCtxtAt<'tcx>, param_env: ty::ParamEnv<'tcx>) -> bool {
+        tcx_at.finalizer_optional_raw(param_env.and(self))
     }
 
     /// Fast path helper for testing if a type is `Freeze`.

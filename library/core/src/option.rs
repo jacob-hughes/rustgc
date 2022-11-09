@@ -546,7 +546,6 @@
 
 #![stable(feature = "rust1", since = "1.0.0")]
 
-use crate::gc::NoFinalize;
 use crate::panicking::{panic, panic_str};
 use crate::pin::Pin;
 use crate::{
@@ -2485,6 +2484,3 @@ impl<T> Option<Option<T>> {
         }
     }
 }
-
-#[unstable(feature = "gc", issue = "none")]
-unsafe impl<T: NoFinalize> NoFinalize for Option<T> {}
