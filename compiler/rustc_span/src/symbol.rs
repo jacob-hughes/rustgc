@@ -1047,6 +1047,7 @@ symbols! {
         non_exhaustive,
         non_exhaustive_omitted_patterns_lint,
         non_lifetime_binders,
+        non_finalizable,
         non_modrs_mods,
         none,
         nontemporal_store,
