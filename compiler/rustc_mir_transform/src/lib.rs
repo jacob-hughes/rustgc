@@ -86,7 +86,7 @@ mod multiple_return_terminators;
 mod normalize_array_len;
 mod nrvo;
 mod ref_prop;
-mod prevent_early_finalization;
+mod remove_gc_drops;
 mod remove_noop_landing_pads;
 mod remove_storage_markers;
 mod remove_uninit_drops;
@@ -283,7 +283,6 @@ fn mir_const(tcx: TyCtxt<'_>, def: LocalDefId) -> &Steal<Body<'_>> {
             &Lint(function_item_references::FunctionItemReferences),
             // What we need to do constant evaluation.
             &simplify::SimplifyCfg::Initial,
-            &prevent_early_finalization::PreventEarlyFinalization,
             &rustc_peek::SanityCheck, // Just a lint
         ],
         None,
@@ -584,6 +583,7 @@ fn run_optimization_passes<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
             &large_enums::EnumSizeOpt { discrepancy: 128 },
             // Some cleanup necessary at least for LLVM and potentially other codegen backends.
             &add_call_guards::CriticalCallEdges,
+            &remove_gc_drops::RemoveGcDrops,
             // Dump the end result for testing and debugging purposes.
             &dump_mir::Marker("PreCodegen"),
         ],

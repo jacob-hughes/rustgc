@@ -13,6 +13,9 @@ use rustc_middle::ty::{self, AdtDef, GenericArg, List, ParamEnv, Ty, TyCtxt, Typ
 use rustc_span::DUMMY_SP;
 
 use super::outlives_bounds::InferCtxtExt;
+use rustc_span::sym;
+
+use crate::traits::error_reporting::InferCtxtExt;
 
 pub enum CopyImplementationError<'tcx> {
     InfringingFields(Vec<(&'tcx ty::FieldDef, Ty<'tcx>, InfringingFieldsReason<'tcx>)>),
@@ -60,6 +63,10 @@ pub fn type_allowed_to_implement_copy<'tcx>(
 
         _ => return Err(CopyImplementationError::NotAnAdt),
     };
+
+    if tcx.get_diagnostic_item(sym::gc).map_or(false, |gc| adt.did() == gc) {
+        return Ok(());
+    }
 
     all_fields_implement_trait(
         tcx,
