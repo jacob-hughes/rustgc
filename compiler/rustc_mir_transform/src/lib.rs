@@ -584,6 +584,7 @@ fn run_optimization_passes<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
             // Some cleanup necessary at least for LLVM and potentially other codegen backends.
             &add_call_guards::CriticalCallEdges,
             &remove_gc_drops::RemoveGcDrops,
+            &marker::PhaseChange(MirPhase::Optimized),
             // Dump the end result for testing and debugging purposes.
             &dump_mir::Marker("PreCodegen"),
         ],
