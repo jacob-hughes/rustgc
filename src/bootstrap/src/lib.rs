@@ -90,6 +90,7 @@ const EXTRA_CHECK_CFGS: &[(Option<Mode>, &str, Option<&[&'static str]>)] = &[
     (Some(Mode::Std), "no_rc", None),
     (Some(Mode::Std), "no_sync", None),
     (Some(Mode::Std), "netbsd10", None),
+    (Some(Mode::Std), "profile_gc", None),
     (Some(Mode::Std), "backtrace_in_libstd", None),
     /* Extra values not defined in the built-in targets yet, but used in std */
     (Some(Mode::Std), "target_env", Some(&["libnx", "p2"])),
