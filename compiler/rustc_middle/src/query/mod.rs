@@ -1349,10 +1349,6 @@ rustc_queries! {
     query is_unpin_raw(env: ty::ParamEnvAnd<'tcx, Ty<'tcx>>) -> bool {
         desc { "computing whether `{}` is `Unpin`", env.value }
     }
-    /// Query backing `TyS::is_collectable`.
-    query is_collectable_raw(env: ty::ParamEnvAnd<'tcx, Ty<'tcx>>) -> bool {
-        desc { "computing whether `{}` is `Collectable`", env.value }
-    }
     /// Query backing `Ty::must_check_component_tys_for_finalizer`.
     query finalizer_optional_raw(env: ty::ParamEnvAnd<'tcx, Ty<'tcx>>) -> bool {
         desc { "computing whether `{}` contains types which might need finalizing", env.value }

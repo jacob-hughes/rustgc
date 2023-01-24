@@ -30,10 +30,6 @@ fn is_conservative_raw<'tcx>(tcx: TyCtxt<'tcx>, query: ty::ParamEnvAnd<'tcx, Ty<
     is_item_raw(tcx, query, LangItem::Conservative)
 }
 
-fn is_collectable_raw<'tcx>(tcx: TyCtxt<'tcx>, query: ty::ParamEnvAnd<'tcx, Ty<'tcx>>) -> bool {
-    is_item_raw(tcx, query, LangItem::Collectable)
-}
-
 fn is_item_raw<'tcx>(
     tcx: TyCtxt<'tcx>,
     query: ty::ParamEnvAnd<'tcx, Ty<'tcx>>,
@@ -67,7 +63,6 @@ pub(crate) fn provide(providers: &mut Providers) {
         is_unpin_raw,
         is_conservative_raw,
         is_no_trace_raw,
-        is_collectable_raw,
         finalizer_optional_raw,
         ..*providers
     };

@@ -46,8 +46,6 @@ use std::io::{Read, Seek, Write};
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 
-use rustc_monomorphize::collectable_trait::is_collectable_trait_method;
-
 pub(super) struct EncodeContext<'a, 'tcx> {
     opaque: opaque::FileEncoder,
     tcx: TyCtxt<'tcx>,
