@@ -266,6 +266,7 @@ symbols! {
         Ready,
         Receiver,
         RefCell,
+        ReferenceFree,
         Relaxed,
         Release,
         Result,
