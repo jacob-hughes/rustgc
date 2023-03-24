@@ -1,13 +1,15 @@
+#![allow(rustc::untranslatable_diagnostic)]
+#![allow(rustc::diagnostic_outside_of_impl)]
 use crate::MirPass;
 use rustc_hir::lang_items::LangItem;
 use rustc_middle::mir::visit::PlaceContext;
 use rustc_middle::mir::visit::Visitor;
 use rustc_middle::mir::*;
-use rustc_middle::ty::subst::InternalSubsts;
-use rustc_middle::ty::{self, ParamEnv, Subst, Ty, TyCtxt};
+use rustc_middle::ty::{self, ParamEnv, Ty, TyCtxt};
 use rustc_span::symbol::sym;
-use rustc_span::{Span, DUMMY_SP};
-use rustc_trait_selection::infer::{InferCtxtExt, TyCtxtInferExt};
+use rustc_span::Span;
+use rustc_trait_selection::infer::InferCtxtExt as _;
+use rustc_trait_selection::infer::TyCtxtInferExt;
 
 #[derive(PartialEq)]
 pub struct CheckFinalizers;
@@ -23,7 +25,7 @@ impl<'tcx> MirPass<'tcx> for CheckFinalizers {
         let ctor_did = ctor.unwrap();
         let param_env = tcx.param_env(body.source.def_id());
 
-        for block in body.basic_blocks() {
+        for block in body.basic_blocks.iter() {
             match &block.terminator {
                 Some(Terminator { kind: TerminatorKind::Call { func, args, .. }, source_info }) => {
                     let func_ty = func.ty(body, tcx);
@@ -38,6 +40,7 @@ impl<'tcx> MirPass<'tcx> for CheckFinalizers {
                             let arg_ty = args[0].node.ty(body, tcx);
                             let mut finalizer_cx =
                                 FinalizationCtxt { ctor: source_info.span, arg, tcx, param_env };
+                            finalizer_cx.check_for_dangling_refs(arg_ty);
                             finalizer_cx.check(arg_ty);
                         }
                     }
@@ -150,17 +153,27 @@ impl<'tcx> FinalizationCtxt<'tcx> {
     }
 
     fn is_finalizer_safe(&self, ty: Ty<'tcx>) -> bool {
-        self.tcx.infer_ctxt().enter(|infcx| {
-            self.tcx.get_diagnostic_item(sym::FinalizerSafe).map(|t| {
-                infcx
-                    .type_implements_trait(t, ty, InternalSubsts::empty(), self.param_env)
-                    .may_apply()
-            }) == Some(true)
-        })
+        let t = self.tcx.get_diagnostic_item(sym::FinalizerSafe).unwrap();
+        return self
+            .tcx
+            .infer_ctxt()
+            .build()
+            .type_implements_trait(t, [ty], self.param_env)
+            .must_apply_modulo_regions();
+    }
+
+    fn is_reference_free(&self, ty: Ty<'tcx>) -> bool {
+        let t = self.tcx.get_diagnostic_item(sym::ReferenceFree).unwrap();
+        return self
+            .tcx
+            .infer_ctxt()
+            .build()
+            .type_implements_trait(t, [ty], self.param_env)
+            .must_apply_modulo_regions();
     }
 
     fn is_copy(&self, ty: Ty<'tcx>) -> bool {
-        ty.is_copy_modulo_regions(self.tcx.at(DUMMY_SP), self.param_env)
+        ty.is_copy_modulo_regions(self.tcx, self.param_env)
     }
 
     fn is_gc(&self, ty: Ty<'tcx>) -> bool {

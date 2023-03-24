@@ -284,6 +284,7 @@ symbols! {
         RefCell,
         RefCellRef,
         RefCellRefMut,
+        ReferenceFree,
         Relaxed,
         Release,
         Result,
