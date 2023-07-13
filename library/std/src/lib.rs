@@ -589,6 +589,7 @@ pub mod error;
 pub mod ffi;
 pub mod fs;
 pub mod hash;
+#[unstable(feature = "gc", issue = "none")]
 pub mod gc;
 pub mod io;
 pub mod net;

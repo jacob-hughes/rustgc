@@ -17,6 +17,7 @@
 #![feature(generic_nonzero)]
 #![feature(linked_list_cursors)]
 #![feature(map_try_insert)]
+#![feature(gc)]
 #![feature(new_uninit)]
 #![feature(pattern)]
 #![feature(trusted_len)]

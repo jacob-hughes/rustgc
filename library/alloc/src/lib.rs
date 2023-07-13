@@ -147,6 +147,7 @@
 #![feature(ptr_metadata)]
 #![feature(ptr_sub_ptr)]
 #![feature(receiver_trait)]
+#![feature(rustc_private)]
 #![feature(set_ptr_value)]
 #![feature(sized_type_properties)]
 #![feature(slice_from_ptr_range)]
@@ -253,6 +254,8 @@ pub mod collections;
 #[cfg(all(not(no_rc), not(no_sync), not(no_global_oom_handling)))]
 pub mod ffi;
 pub mod fmt;
+#[unstable(feature = "gc", issue = "none")]
+pub mod gc;
 #[cfg(not(no_rc))]
 pub mod rc;
 pub mod slice;

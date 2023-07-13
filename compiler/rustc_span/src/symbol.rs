@@ -897,6 +897,7 @@ symbols! {
         fused_iterator,
         future,
         future_trait,
+        gc,
         gdb_script_file,
         ge,
         gen_blocks,
