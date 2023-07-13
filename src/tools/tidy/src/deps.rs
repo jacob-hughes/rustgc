@@ -123,6 +123,7 @@ const PERMITTED_RUSTC_DEPENDENCIES: &[&str] = &[
     "chalk-engine",
     "chalk-ir",
     "chalk-solve",
+    "cmake",
     "compiler_builtins",
     "convert_case", // dependency of derive_more
     "cpufeatures",
