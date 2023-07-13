@@ -529,6 +529,7 @@ pub mod env;
 pub mod error;
 pub mod ffi;
 pub mod fs;
+#[unstable(feature = "gc", issue = "none")]
 pub mod gc;
 pub mod io;
 pub mod net;

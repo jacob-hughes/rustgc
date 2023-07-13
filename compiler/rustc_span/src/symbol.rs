@@ -765,6 +765,7 @@ symbols! {
         fundamental,
         future,
         future_trait,
+        gc,
         gdb_script_file,
         ge,
         gen_future,
