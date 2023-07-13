@@ -207,6 +207,7 @@ const PERMITTED_RUSTC_DEPENDENCIES: &[&str] = &[
     "cc",
     "cfg-if",
     "cfg_aliases",
+    "cmake",
     "compiler_builtins",
     "cpufeatures",
     "crc32fast",
