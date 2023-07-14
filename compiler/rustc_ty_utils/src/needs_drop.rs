@@ -142,7 +142,6 @@ where
 
                     _ if component.is_copy_modulo_regions(tcx, self.param_env) => (),
 
-
                     ty::Closure(_, substs) => {
                         queue_type(self, substs.as_closure().tupled_upvars_ty());
                     }
