@@ -177,11 +177,11 @@ where
                     ty::Adt(adt_def, args) => {
                         let finalizer_optional =
                             self.is_finalizer && component.finalizer_optional(tcx, self.param_env);
-                        if finalizer_optional {
-                            for arg_ty in args.types() {
-                                queue_type(self, arg_ty);
-                            }
-                        }
+                        // if finalizer_optional {
+                        //     for arg_ty in args.types() {
+                        //         queue_type(self, arg_ty);
+                        //     }
+                        // }
 
                         if self.is_finalizer
                             && adt_def.did()

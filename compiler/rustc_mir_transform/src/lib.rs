@@ -321,7 +321,7 @@ fn mir_promoted(
             &promote_pass,
             &simplify::SimplifyCfg::PromoteConsts,
             &coverage::InstrumentCoverage,
-            &check_finalizers::CheckFinalizers,
+            // &check_finalizers::CheckFinalizers,
         ],
         Some(MirPhase::Analysis(AnalysisPhase::Initial)),
     );
