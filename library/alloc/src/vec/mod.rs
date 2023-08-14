@@ -2083,7 +2083,9 @@ impl<T, A: Allocator> Vec<T, A> {
             unsafe {
                 self.len -= 1;
                 core::hint::assert_unchecked(self.len < self.capacity());
-                Some(ptr::read(self.as_ptr().add(self.len())))
+                let value = Some(ptr::read(self.as_ptr().add(self.len())));
+                ptr::write_bytes(self.as_mut_ptr().add(self.len()), 0, 1);
+                value
             }
         }
     }
