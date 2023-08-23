@@ -39,6 +39,7 @@ fn main() {
         .define("BUILD_SHARED_LIBS", "OFF")
         .cflag("-DGC_IGNORE_WARN")
         .cflag("-DGC_ALWAYS_MULTITHREADED")
+        .cflag("-DKEEP_BACK_PTRS")
         .build();
 
     println!("cargo:rustc-link-search=native={}", &build_dir.display());

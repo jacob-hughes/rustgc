@@ -36,6 +36,7 @@
 //! [mutability]: core::cell#introducing-mutability-inside-of-something-immutable
 //! [fully qualified syntax]: https://doc.rust-lang.org/book/ch19-03-advanced-traits.html#fully-qualified-syntax-for-disambiguation-calling-methods-with-the-same-name
 #![allow(missing_docs)]
+#![allow(unused_imports)]
 
 #[cfg(not(test))]
 #[cfg(not(no_global_oom_handling))]
@@ -56,7 +57,6 @@ use core::{
     ptr::{drop_in_place, null_mut, NonNull},
 };
 
-#[cfg(profile_gc)]
 use core::sync::atomic::{self, AtomicU64};
 
 #[cfg(not(no_global_oom_handling))]
@@ -70,10 +70,8 @@ mod tests;
 #[unstable(feature = "gc", issue = "none")]
 static ALLOCATOR: GcAllocator = GcAllocator;
 
-#[cfg(profile_gc)]
-static FINALIZERS_REGISTERED: AtomicU64 = AtomicU64::new(0);
-#[cfg(profile_gc)]
-static FINALIZERS_COMPLETED: AtomicU64 = AtomicU64::new(0);
+pub static FINALIZERS_REGISTERED: AtomicU64 = AtomicU64::new(0);
+pub static FINALIZERS_COMPLETED: AtomicU64 = AtomicU64::new(0);
 
 struct GcBox<T: ?Sized>(T);
 
@@ -124,16 +122,16 @@ impl<T: ?Sized + Unsize<U>, U: ?Sized> DispatchFromDyn<Gc<U>> for Gc<T> {}
 /// away the reference too soon. This is a special implementation with compiler
 /// support, because it is usually impossible to allow both `Drop` and `Copy`
 /// traits to be implemented on a type simultaneously.
-#[cfg(all(not(bootstrap), not(test)))]
-impl<T: ?Sized> Drop for Gc<T> {
-    fn drop(&mut self) {
-        unsafe {
-            // asm macro clobber by default, so this is enough to introduce a
-            // barrier.
-            core::arch::asm!("/* {0} */", in(reg) self);
-        }
-    }
-}
+// #[cfg(all(not(bootstrap), not(test)))]
+// impl<T: ?Sized> Drop for Gc<T> {
+//     fn drop(&mut self) {
+//         unsafe {
+//             // asm macro clobber by default, so this is enough to introduce a
+//             // barrier.
+//             core::arch::asm!("/* {0} */", in(reg) self);
+//         }
+//     }
+// }
 
 impl<T: ?Sized> Gc<T> {
     unsafe fn from_inner(ptr: NonNull<GcBox<T>>) -> Self {
@@ -262,19 +260,17 @@ impl<T> Gc<T> {
     }
 
     fn register_finalizer(&mut self) {
-        #[cfg(not(bootstrap))]
-        if !core::mem::needs_finalizer::<T>() {
-            return;
-        }
+        // #[cfg(not(bootstrap))]
+        // if !core::mem::needs_drop::<T>() {
+        //     return;
+        // }
 
-        #[cfg(profile_gc)]
         FINALIZERS_REGISTERED.fetch_add(1, atomic::Ordering::Relaxed);
 
         unsafe extern "C" fn finalizer<T>(obj: *mut u8, _meta: *mut u8) {
             unsafe {
-                drop_in_place(obj as *mut T);
-                #[cfg(profile_gc)]
                 FINALIZERS_COMPLETED.fetch_add(1, atomic::Ordering::Relaxed);
+                drop_in_place(obj as *mut T);
             }
         }
 
@@ -296,14 +292,12 @@ impl<T> Gc<T> {
     }
 }
 
-#[cfg(profile_gc)]
 #[derive(Debug)]
 pub struct FinalizerInfo {
     pub registered: u64,
     pub completed: u64,
 }
 
-#[cfg(profile_gc)]
 impl FinalizerInfo {
     pub fn finalizer_info() -> FinalizerInfo {
         FinalizerInfo {
@@ -311,6 +305,10 @@ impl FinalizerInfo {
             completed: FINALIZERS_COMPLETED.load(atomic::Ordering::Relaxed),
         }
     }
+}
+
+pub fn print_finalizer_info() -> FinalizerInfo {
+    return FinalizerInfo::finalizer_info();
 }
 
 impl Gc<dyn Any> {

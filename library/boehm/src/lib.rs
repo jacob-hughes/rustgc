@@ -13,17 +13,17 @@ pub struct GcAllocator;
 unsafe impl GlobalAlloc for GcAllocator {
     #[inline]
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        return boehm::GC_malloc(layout.size()) as *mut u8;
+        return boehm::GC_debug_malloc(layout.size()) as *mut u8;
     }
 
     #[inline]
     unsafe fn dealloc(&self, ptr: *mut u8, _: Layout) {
-        boehm::GC_free(ptr);
+        boehm::GC_debug_free(ptr);
     }
 
     #[inline]
     unsafe fn realloc(&self, ptr: *mut u8, _: Layout, new_size: usize) -> *mut u8 {
-        boehm::GC_realloc(ptr, new_size) as *mut u8
+        boehm::GC_debug_realloc(ptr, new_size) as *mut u8
     }
 }
 
@@ -31,7 +31,7 @@ unsafe impl Allocator for GcAllocator {
     #[inline]
     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
         unsafe {
-            let ptr = boehm::GC_malloc(layout.size()) as *mut u8;
+            let ptr = boehm::GC_debug_malloc(layout.size()) as *mut u8;
             let ptr = NonNull::new_unchecked(ptr);
             Ok(NonNull::slice_from_raw_parts(ptr, layout.size()))
         }

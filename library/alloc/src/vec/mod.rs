@@ -1904,8 +1904,9 @@ impl<T, A: Allocator> Vec<T, A> {
         } else {
             unsafe {
                 self.len -= 1;
-                let value = Some(ptr::read(self.as_ptr().add(self.len())));
-                ptr::write_bytes(self.as_mut_ptr().add(self.len()), 0, 1);
+                let ptr = self.as_ptr().add(self.len());
+                let value = Some(ptr::read(ptr));
+                ptr::write_bytes(ptr as *mut T, 0, 1);
                 value
             }
         }

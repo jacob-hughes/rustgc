@@ -30,11 +30,11 @@ pub struct ProfileStats {
 
 #[link(name = "gc")]
 extern "C" {
-    pub(crate) fn GC_malloc(nbytes: usize) -> *mut u8;
+    pub(crate) fn GC_debug_malloc(nbytes: usize) -> *mut u8;
 
-    pub(crate) fn GC_realloc(old: *mut u8, new_size: usize) -> *mut u8;
+    pub(crate) fn GC_debug_realloc(old: *mut u8, new_size: usize) -> *mut u8;
 
-    pub(crate) fn GC_free(dead: *mut u8);
+    pub(crate) fn GC_debug_free(dead: *mut u8);
 
     pub(crate) fn GC_register_finalizer(
         ptr: *mut u8,
