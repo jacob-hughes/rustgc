@@ -30,11 +30,13 @@ pub struct ProfileStats {
 
 #[link(name = "gc")]
 extern "C" {
-    pub(crate) fn GC_debug_malloc(nbytes: usize) -> *mut u8;
+    pub(crate) fn GC_malloc(nbytes: usize) -> *mut u8;
 
-    pub(crate) fn GC_debug_realloc(old: *mut u8, new_size: usize) -> *mut u8;
+    pub(crate) fn GC_realloc(old: *mut u8, new_size: usize) -> *mut u8;
 
-    pub(crate) fn GC_debug_free(dead: *mut u8);
+    pub(crate) fn GC_malloc_uncollectable(nbytes: usize) -> *mut u8;
+
+    pub(crate) fn GC_free(dead: *mut u8);
 
     pub(crate) fn GC_register_finalizer(
         ptr: *mut u8,
@@ -44,13 +46,13 @@ extern "C" {
         old_client_data: *mut *mut u8,
     );
 
-    pub(crate) fn GC_register_finalizer_no_order(
-        ptr: *mut u8,
-        finalizer: Option<unsafe extern "C" fn(*mut u8, *mut u8)>,
-        client_data: *mut u8,
-        old_finalizer: *mut extern "C" fn(*mut u8, *mut u8),
-        old_client_data: *mut *mut u8,
-    );
+    // pub(crate) fn GC_register_finalizer_no_order(
+    //     ptr: *mut u8,
+    //     finalizer: Option<unsafe extern "C" fn(*mut u8, *mut u8)>,
+    //     client_data: *mut u8,
+    //     old_finalizer: *mut extern "C" fn(*mut u8, *mut u8),
+    //     old_client_data: *mut *mut u8,
+    // );
 
     pub(crate) fn GC_gcollect();
 
