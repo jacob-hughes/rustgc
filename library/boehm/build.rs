@@ -3,7 +3,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-const BOEHM_REPO: &str = "https://github.com/softdevteam/bdwgc.git";
+const BOEHM_REPO: &str = "https://github.com/ivmai/bdwgc.git";
 const BOEHM_ATOMICS_REPO: &str = "https://github.com/ivmai/libatomic_ops.git";
 const BOEHM_DIR: &str = "bdwgc";
 const BUILD_DIR: &str = "lib";
@@ -37,8 +37,8 @@ fn main() {
     cmake::Config::new(&boehm_src)
         .pic(true)
         .define("BUILD_SHARED_LIBS", "OFF")
-        .define("JAVA_FINALIZATION", "ON")
-        .define("GC_ALWAYS_MULTITHREADED", "ON")
+        .cflag("-DGC_ALWAYS_MULTITHREADED")
+        .cflag("-DGC_JAVA_FINALIZATION")
         .build();
 
     println!("cargo:rustc-link-search=native={}", &build_dir.display());

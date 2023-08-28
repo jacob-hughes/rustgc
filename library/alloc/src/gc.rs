@@ -260,10 +260,10 @@ impl<T> Gc<T> {
     }
 
     fn register_finalizer(&mut self) {
-        // #[cfg(not(bootstrap))]
-        // if !core::mem::needs_drop::<T>() {
-        //     return;
-        // }
+        #[cfg(not(bootstrap))]
+        if !core::mem::needs_finalizer::<T>() {
+            return;
+        }
 
         FINALIZERS_REGISTERED.fetch_add(1, atomic::Ordering::Relaxed);
 
@@ -276,7 +276,7 @@ impl<T> Gc<T> {
 
         unsafe {
             ALLOCATOR.register_finalizer(
-                self as *mut _ as *mut u8,
+                self.ptr.as_mut() as *mut _ as *mut u8,
                 Some(finalizer::<T>),
                 null_mut(),
                 null_mut(),
