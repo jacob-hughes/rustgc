@@ -1,4 +1,3 @@
-use crate::MirPass;
 use rustc_middle::mir::*;
 use rustc_middle::ty::{self, TyCtxt};
 use rustc_span::sym;
@@ -38,7 +37,7 @@ impl<'tcx> MirPass<'tcx> for RemoveGcDrops {
         // if we applied optimizations, we potentially have some cfg to cleanup to
         // make it easier for further passes
         if should_simplify {
-            simplify_cfg(tcx, body);
+            simplify_cfg(body);
         }
     }
 }
