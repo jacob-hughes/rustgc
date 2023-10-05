@@ -1,56 +1,158 @@
-<div align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/rust-lang/www.rust-lang.org/master/static/images/rust-social-wide-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/rust-lang/www.rust-lang.org/master/static/images/rust-social-wide-light.svg">
-    <img alt="The Rust Programming Language: A language empowering everyone to build reliable and efficient software"
-         src="https://raw.githubusercontent.com/rust-lang/www.rust-lang.org/master/static/images/rust-social-wide-light.svg"
-         width="50%">
-  </picture>
+# Alloy: opt-in tracing garbage collection for Rust
 
-[Website][Rust] | [Getting started] | [Learn] | [Documentation] | [Contributing]
-</div>
+Alloy is a fork of the Rust language with support for opt-in tracing garbage
+collection (GC) using the `Gc<T>` type. It is a research project designed to
+help make **writing cyclic data structures easier** in Rust.
 
-This is the main source code repository for [Rust]. It contains the compiler,
-standard library, and documentation.
+Alloy is not production-ready. However, it is sufficiently polished to be usable
+for real programs: it supports GC across multiple threads; has high-quality
+error messages; and reasonable performance.
 
-[Rust]: https://www.rust-lang.org/
-[Getting Started]: https://www.rust-lang.org/learn/get-started
-[Learn]: https://www.rust-lang.org/learn
-[Documentation]: https://www.rust-lang.org/learn#learn-use
-[Contributing]: CONTRIBUTING.md
+## Using Alloy to write a doubly-linked list
 
-## Why Rust?
+The following example program shows how we can use Alloy's `Gc<T>` smart pointer
+to write a doubly-linked list with three nodes:
 
-- **Performance:** Fast and memory-efficient, suitable for critical services, embedded devices, and easily integrate with other languages.
+```rust
+use std::gc::Gc;
+use std::cell::RefCell;
 
-- **Reliability:** Our rich type system and ownership model ensure memory and thread safety, reducing bugs at compile-time.
+struct Node {
+    name: &'static str,
+    prev: Option<Gc<RefCell<Node>>>,
+    next: Option<Gc<RefCell<Node>>>,
+}
 
-- **Productivity:** Comprehensive documentation, a compiler committed to providing great diagnostics, and advanced tooling including package manager and build tool ([Cargo]), auto-formatter ([rustfmt]), linter ([Clippy]) and editor support ([rust-analyzer]).
+fn main() {
+    let c = Gc::new(RefCell::new(Node { name: "c", prev: None, next: None}));
+    let b = Gc::new(RefCell::new(Node { name: "b", prev: None, next: Some(c)}));
+    let a = Gc::new(RefCell::new(Node { name: "a", prev: None, next: Some(b)}));
 
-[Cargo]: https://github.com/rust-lang/cargo
-[rustfmt]: https://github.com/rust-lang/rustfmt
-[Clippy]: https://github.com/rust-lang/rust-clippy
-[rust-analyzer]: https://github.com/rust-lang/rust-analyzer
+    // Now patch in the previous nodes
+    c.borrow_mut().next = Some(b);
+    b.borrow_mut().next = Some(a);
+}
+```
 
-## Quick Start
+This is similar to using Rust's `Rc` smart pointer, but instead, there is a
+garbage collector running in the background which will automatically free the
+`Gc` values when they're no longer used. There are two main ergonomic benefits
+to using Alloy:
 
-Read ["Installation"] from [The Book].
+1. The `Gc` type is `Copy`, so new pointers can be created easily without
+   needing to `clone` them.
+2. Alloy supports cyclic references by design, so there's no need to use `Weak`
+   references.
 
-["Installation"]: https://doc.rust-lang.org/book/ch01-01-installation.html
-[The Book]: https://doc.rust-lang.org/book/index.html
+## Building Alloy
 
-## Installing from Source
+### Dependencies
 
-If you really want to install from source (though this is not recommended), see
-[INSTALL.md](INSTALL.md).
+Make sure you have installed the dependencies:
 
-## Getting Help
+* `rustup`
+* `python` 3 or 2.7
+* `git`
+* A C compiler (when building for the host, `cc` is enough; cross-compiling may
+  need additional compilers)
+* `curl`
+* `pkg-config` if you are compiling on Linux and targeting Linux
+* `libiconv` (already included with glibc on Debian-based distros)
+* `g++`, `clang++`, or MSVC with versions listed on
+  [LLVM's documentation](https://llvm.org/docs/GettingStarted.html#host-c-toolchain-both-compiler-and-standard-library)
+* `ninja`, or GNU `make` 3.81 or later (Ninja is recommended, especially on
+  Windows)
+* `cmake` 3.13.4 or later
+* `libstdc++-static` may be required on some Linux distributions such as Fedora
+  and Ubuntu
 
-See https://www.rust-lang.org/community for a list of chat platforms and forums.
+### Build steps
 
-## Contributing
+[installation guide]: https://github.com/rust-lang/rust#installing-from-source
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+Building Alloy from source is the same process as building the official Rust
+compiler from source. For a more detailed guide on how this is done, along with
+the different configuration options, follow the [installation guide] from the
+official Rust repository.
+
+1. Clone the [source] with `git`:
+
+   ```sh
+   git clone https://github.com/softdevteam/alloy.git
+   cd rust
+   ```
+
+[source]: https://github.com/softdevteam/alloy
+
+2. Configure the build settings:
+
+   ```sh
+   ./configure
+   ```
+
+   If you plan to use `x.py install` to create an installation, it is
+   recommended that you set the `prefix` value in the `[install]` section to a
+   directory: `./configure --set install.prefix=<path>`
+
+3. Build and install:
+
+   ```sh
+   ./x.py build && ./x.py install
+   ```
+
+   When complete, `./x.py install` will place several programs into
+   `$PREFIX/bin`: `rustc`, the Rust compiler, and `rustdoc`, the
+   API-documentation tool. By default, it will also include [Cargo], Rust's
+   package manager. You can disable this behavior by passing
+   `--set build.extended=false` to `./configure`.
+
+4. Add the Alloy toolchain to rustup:
+
+   ```sh
+   rustup toolchain link alloy /path/to/alloy/rustc
+   ```
+
+Rust programs which use cargo can now be built and run using Alloy instead of
+the official Rust compiler:
+
+   ```sh
+   cargo +alloy build
+   ```
+
+## How it works
+
+[Boehm Demers Weiser GC (BDWGC)]: https://github.com/ivmai/bdwgc
+
+Alloy uses _conservative_ garbage collection. This means that it does not have
+any specific knowledge about where references to objects are located. Instead,
+Alloy will assume that an object is still alive if it can be reached by a value on
+the stack (or in a register) which, if treated like a pointer, points to an
+object in the heap. The fields of those objects are then traced using the same
+approach, until all live objects in the program have been discovered. 
+
+This tends to work well in practice, however, it comes with an important caveat:
+you must not hide references from the GC. For example, data structures
+such as XOR lists are unsound because Alloy will never be able to reach their
+objects.
+
+Behind the scenes, Alloy uses the [Boehm Demers Weiser GC (BDWGC)] for its
+garbage collection implementation. This supports incremental, generational,
+parallel (but not concurrent!)[^1] collection.
+
+[^1]: A _concurrent_ collector is one where threads doing GC work can run at the
+    same time as normal program (i.e. mutator) threads. A _parallel_ garbage
+    collector simply means that the garbage collection workload can be
+    parallelised across multiple worker threads.
+
+## Known limitations
+
+* Alloy is limited to x86-64 architectures.
+* Alloy uses the BDWGC's handlers for the SIGXCPU and SIGPWR signals to
+  co-ordinate pausing threads so that GC can happen. It cannot be used with
+  programs which also catch these signals.
+* Alloy does not support semi-conservative collection (i.e. precise
+  tracing through heap allocated struct / enum fields).
+* Alloy has only been tested on Linux.
 
 ## License
 
@@ -61,17 +163,3 @@ licenses.
 See [LICENSE-APACHE](LICENSE-APACHE), [LICENSE-MIT](LICENSE-MIT), and
 [COPYRIGHT](COPYRIGHT) for details.
 
-## Trademark
-
-[The Rust Foundation][rust-foundation] owns and protects the Rust and Cargo
-trademarks and logos (the "Rust Trademarks").
-
-If you want to use these names or brands, please read the
-[media guide][media-guide].
-
-Third-party logos may be subject to third-party copyrights and trademarks. See
-[Licenses][policies-licenses] for details.
-
-[rust-foundation]: https://foundation.rust-lang.org/
-[media-guide]: https://foundation.rust-lang.org/policies/logo-policy-and-media-guide/
-[policies-licenses]: https://www.rust-lang.org/policies/licenses
