@@ -200,6 +200,7 @@ symbols! {
         Error,
         File,
         FileType,
+        FinalizeUnchecked,
         FinalizerSafe,
         Fn,
         FnMut,
