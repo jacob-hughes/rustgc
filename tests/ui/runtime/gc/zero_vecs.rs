@@ -1,7 +1,6 @@
 // run-pass
 // ignore-tidy-linelength
 #![feature(gc)]
-#![feature(rustc_private)]
 #![feature(negative_impls)]
 #![feature(allocator_api)]
 #![allow(unused_assignments)]
@@ -41,5 +40,5 @@ fn main() {
 
     GcAllocator::force_gc();
 
-    assert_eq!(FINALIZER_COUNT.load(atomic::Ordering::Relaxed), 20);
+    assert_eq!(FINALIZER_COUNT.load(atomic::Ordering::Relaxed), 19);
 }
