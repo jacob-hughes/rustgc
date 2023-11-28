@@ -36,8 +36,9 @@ fn main() {
 
     cmake::Config::new(&boehm_src)
         .pic(true)
-        .profile("Release")
+        .profile("Debug")
         .define("BUILD_SHARED_LIBS", "OFF")
+        .define("enable_gc_assertions", "ON")
         .cflag("-DGC_ALWAYS_MULTITHREADED")
         .cflag("-DGC_JAVA_FINALIZATION")
         .build();
