@@ -50,6 +50,7 @@ use core::{
 
 pub use alloc::gc::thread_registered;
 pub use alloc::gc::GcAllocator;
+pub use alloc::gc::GcUncollectableAllocator;
 pub use core::gc::*;
 
 #[cfg(profile_gc)]

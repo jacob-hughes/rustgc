@@ -34,6 +34,9 @@ pub const MIN_ALIGN: usize = 8;
 #[derive(Debug)]
 pub struct GcAllocator;
 
+#[derive(Debug)]
+pub struct GcUncollectableAllocator;
+
 unsafe impl GlobalAlloc for GcAllocator {
     #[inline]
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
@@ -109,6 +112,24 @@ unsafe impl Allocator for GcAllocator {
     unsafe fn deallocate(&self, _: NonNull<u8>, _: Layout) {}
 }
 
+unsafe impl Allocator for GcUncollectableAllocator {
+    #[inline]
+    fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
+        match layout.size() {
+            0 => Ok(NonNull::slice_from_raw_parts(layout.dangling(), 0)),
+            size => unsafe {
+                let ptr = boehm::GC_malloc_uncollectable(layout.size());
+                let ptr = NonNull::new(ptr).ok_or(AllocError)?;
+                Ok(NonNull::slice_from_raw_parts(ptr, size))
+            },
+        }
+    }
+
+    unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
+        unsafe { gc_free(ptr.as_ptr(), layout)};
+    }
+}
+
 impl GcAllocator {
     pub fn force_gc() {
         unsafe { boehm::GC_gcollect() }
@@ -120,9 +141,9 @@ pub fn init() {
 }
 
 /// Returns true if thread was successfully registered.
-pub unsafe fn register_thread(stack_base: *mut u8) -> bool {
-    unsafe { boehm::GC_register_my_thread(stack_base) == 0 }
-}
+// pub unsafe fn register_thread(stack_base: *mut u8) -> bool {
+//     unsafe { boehm::GC_register_my_thread(stack_base) == 0 }
+// }
 
 /// Returns true if thread was successfully unregistered.
 pub unsafe fn unregister_thread() -> bool {

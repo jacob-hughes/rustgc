@@ -77,5 +77,6 @@ package.json
 
 ## Rustdoc GUI tests
 tests/rustdoc-gui/src/**.lock
+src/llvm-project
 
 # Before adding new lines, see the comment at the top.
