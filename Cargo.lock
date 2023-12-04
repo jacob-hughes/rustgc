@@ -340,6 +340,7 @@ dependencies = [
  "cmake",
  "compiler_builtins",
  "core",
+ "libc",
 ]
 
 [[package]]
