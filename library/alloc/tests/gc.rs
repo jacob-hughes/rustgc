@@ -1,6 +1,8 @@
 use std::alloc::GlobalAlloc;
 use std::alloc::Layout;
 use std::gc::GcAllocator;
+use std::alloc::GlobalAlloc;
+use std::alloc::Layout;
 
 #[allow(dead_code)]
 #[repr(align(1024))]
