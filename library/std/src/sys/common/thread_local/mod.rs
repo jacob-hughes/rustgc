@@ -85,7 +85,10 @@ mod lazy {
                 // which means that using something like `try_with` can pull in
                 // panicking code and cause a large size bloat.
                 match *ptr {
-                    Some(ref x) => x,
+                    Some(ref x) => {
+                        // crate::gc::TLS_ROOTSET.push(x as *const _ as *mut u8);
+                        x
+                    }
                     None => hint::unreachable_unchecked(),
                 }
             }

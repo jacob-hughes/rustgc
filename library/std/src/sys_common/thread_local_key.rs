@@ -53,6 +53,7 @@ mod tests;
 
 use crate::sync::atomic::{self, AtomicUsize, Ordering};
 use crate::sys::thread_local_key as imp;
+use crate::gc::TLS_ROOTSET;
 
 /// A type for TLS keys that are statically allocated.
 ///
@@ -123,6 +124,7 @@ impl StaticKey {
     /// been allocated.
     #[inline]
     pub unsafe fn set(&self, val: *mut u8) {
+        TLS_ROOTSET.push(val);
         imp::set(self.key(), val)
     }
 
