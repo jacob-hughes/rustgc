@@ -23,6 +23,7 @@
 // FIXME: The Rust compiler currently omits weakly function definitions (i.e.,
 // __cxa_thread_atexit_impl) and its metadata from LLVM IR.
 #[no_sanitize(cfi, kcfi)]
+#[allow(dead_code)]
 pub unsafe fn register_dtor(t: *mut u8, dtor: unsafe extern "C" fn(*mut u8)) {
     use crate::mem;
     use crate::sys_common::thread_local_dtor::register_dtor_fallback;
