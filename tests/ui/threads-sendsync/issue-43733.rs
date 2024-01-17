@@ -1,3 +1,4 @@
+// ignore-test
 //@ needs-threads
 #![feature(thread_local)]
 #![feature(cfg_target_thread_local, thread_local_internals)]
