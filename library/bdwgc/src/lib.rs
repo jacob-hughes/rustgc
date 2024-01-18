@@ -1,7 +1,5 @@
 #![no_std]
 
-use libc;
-
 #[repr(C)]
 #[derive(Default)]
 pub struct ProfileStats {
