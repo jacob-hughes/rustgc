@@ -1,4 +1,4 @@
-// ignore-test
+//@ ignore-test
 //@ needs-threads
 //@ dont-check-compiler-stderr
 #![feature(cfg_target_thread_local, thread_local_internals)]
