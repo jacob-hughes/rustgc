@@ -584,9 +584,6 @@ pub use core::usize;
 pub mod f128;
 #[unstable(feature = "f16", issue = "116909")]
 pub mod f16;
-#[unstable(feature = "gc", issue = "none")]
-pub use alloc_crate::gc::GcAllocator;
-
 pub mod f32;
 pub mod f64;
 
@@ -594,14 +591,16 @@ pub mod f64;
 pub mod thread;
 pub mod ascii;
 pub mod backtrace;
+#[unstable(feature = "gc", issue = "none")]
+use bdwgc;
 pub mod collections;
 pub mod env;
 pub mod error;
 pub mod ffi;
 pub mod fs;
-pub mod hash;
 #[unstable(feature = "gc", issue = "none")]
 pub mod gc;
+pub mod hash;
 pub mod io;
 pub mod net;
 pub mod num;

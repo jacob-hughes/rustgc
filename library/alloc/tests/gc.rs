@@ -1,10 +1,12 @@
-use std::gc::GcAllocator;
 use std::alloc::GlobalAlloc;
 use std::alloc::Layout;
+use std::gc::GcAllocator;
 
+#[allow(dead_code)]
 #[repr(align(1024))]
 struct S(u8);
 
+#[allow(dead_code)]
 #[repr(align(16))]
 struct T(usize, usize, usize, usize);
 
@@ -17,14 +19,18 @@ fn large_alignment() {
 
     // When this is freed, GC assertions will check if the base pointer can be
     // correctly recovered.
-    unsafe { let _ = Box::from_raw_in(ptr, GcAllocator); }
+    unsafe {
+        let _ = Box::from_raw_in(ptr, GcAllocator);
+    }
 
     let y = Box::new_in(T(1, 2, 3, 4), GcAllocator);
     let ptr = Box::into_raw(y);
     assert!(!ptr.is_null());
     assert!(ptr.is_aligned());
 
-    unsafe { let _ = Box::from_raw_in(ptr, GcAllocator); }
+    unsafe {
+        let _ = Box::from_raw_in(ptr, GcAllocator);
+    }
 }
 
 #[test]
