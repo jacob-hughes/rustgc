@@ -163,7 +163,6 @@ use crate::cell::{OnceCell, UnsafeCell};
 use crate::env;
 use crate::ffi::{CStr, CString};
 use crate::fmt;
-use crate::gc::FINALIZER_QUEUE;
 use crate::io;
 use crate::marker::PhantomData;
 use crate::mem::{self, forget};
@@ -530,15 +529,10 @@ impl Builder {
         }
 
         let f = MaybeDangling::new(f);
-
-        let fin_q_sender = FINALIZER_QUEUE.with(|q| q.borrow().clone());
-
         let main = move || {
             if let Some(name) = their_thread.cname() {
                 imp::Thread::set_name(name);
             }
-
-            FINALIZER_QUEUE.with(|q| *q.borrow_mut() = fin_q_sender);
 
             crate::io::set_output_capture(output_capture);
 
