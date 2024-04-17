@@ -2,8 +2,8 @@
 
 use core::alloc::LayoutError;
 use core::cmp;
-use core::hint;
 use core::gc::FinalizerOptional;
+use core::hint;
 use core::mem::{self, ManuallyDrop, MaybeUninit, SizedTypeProperties};
 use core::ptr::{self, NonNull, Unique};
 
