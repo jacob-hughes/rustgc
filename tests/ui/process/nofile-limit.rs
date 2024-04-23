@@ -2,12 +2,12 @@
 // with RLIMIT_NOFILE resource lowered to zero. Regression
 // test for issue #96621.
 //
+//@ ignore-test
 //@ run-pass
 //@ dont-check-compiler-stderr
 //@ only-linux
 //@ no-prefer-dynamic
 //@ compile-flags: -Ctarget-feature=+crt-static -Crpath=no -Crelocation-model=static
-// ignore-test
 #![feature(exit_status_error)]
 #![feature(rustc_private)]
 extern crate libc;:

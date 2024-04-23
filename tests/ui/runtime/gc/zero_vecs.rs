@@ -1,10 +1,10 @@
-// run-pass
-// ignore-tidy-linelength
+//@ run-pass
 #![feature(gc)]
 #![feature(negative_impls)]
 #![feature(allocator_api)]
 #![allow(unused_assignments)]
 #![allow(unused_variables)]
+#![allow(dead_code)]
 
 use std::gc::{Gc, GcAllocator};
 use std::sync::atomic::{self, AtomicUsize};

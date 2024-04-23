@@ -1,5 +1,6 @@
-// run-pass
+//@ run-pass
 #![feature(gc)]
+#![allow(dead_code)]
 
 use std::gc::Gc;
 use std::gc::GcAllocator;

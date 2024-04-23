@@ -1,4 +1,4 @@
-// run-pass
+//@ run-pass
 // ignore-tidy-linelength
 #![feature(gc)]
 #![allow(dead_code)]

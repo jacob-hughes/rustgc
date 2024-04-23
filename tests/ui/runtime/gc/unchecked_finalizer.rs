@@ -1,7 +1,8 @@
-// run-pass
+//@ run-pass
 // ignore-tidy-linelength
 #![feature(gc)]
 #![feature(negative_impls)]
+#![allow(dead_code)]
 
 use std::gc::{Gc, GcAllocator, FinalizeUnchecked};
 use std::sync::atomic::{self, AtomicUsize};

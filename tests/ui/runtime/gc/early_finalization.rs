@@ -1,4 +1,4 @@
-// run-fail
+//@ run-fail
 // ignore-tidy-linelength
 #![feature(gc)]
 #![allow(unused_variables)]

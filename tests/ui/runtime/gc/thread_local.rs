@@ -1,6 +1,6 @@
-// run-pass
+//@ run-pass
+//@ no-prefer-dynamic
 // ignore-tidy-linelength
-// no-prefer-dynamic
 #![feature(allocator_api)]
 #![feature(gc)]
 #![feature(negative_impls)]

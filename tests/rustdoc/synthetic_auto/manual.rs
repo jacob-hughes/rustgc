@@ -6,7 +6,7 @@
 // 'impl<T> Send for Foo<T>'
 //
 // @count - '//*[@id="trait-implementations-list"]//*[@class="impl"]' 1
-// @count - '//*[@id="synthetic-implementations-list"]//*[@class="impl"]' 6
+// @count - '//*[@id="synthetic-implementations-list"]//*[@class="impl"]' 7
 pub struct Foo<T> {
     field: T,
 }

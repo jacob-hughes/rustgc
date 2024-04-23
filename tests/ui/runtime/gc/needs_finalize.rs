@@ -1,6 +1,7 @@
-// run-pass
+//@ run-pass
 // ignore-tidy-linelength
 #![feature(gc)]
+#![allow(dead_code)]
 
 use std::gc::{FinalizerOptional, Gc, NonFinalizable};
 use std::mem;
