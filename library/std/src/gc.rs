@@ -44,10 +44,17 @@ use core::{
     fmt,
     hash::{Hash, Hasher},
     marker::Unsize,
-    mem::{align_of_val_raw, MaybeUninit},
+    mem::{self, align_of_val_raw, MaybeUninit},
     ops::{CoerceUnsized, Deref, DispatchFromDyn, Receiver},
     ptr::{self, drop_in_place, NonNull},
 };
+
+#[cfg(not(no_global_oom_handling))]
+use crate::alloc::handle_alloc_error;
+use crate::alloc::Global;
+
+#[cfg(not(no_global_oom_handling))]
+use core::slice::from_raw_parts_mut;
 
 pub use core::gc::*;
 
@@ -216,6 +223,15 @@ pub fn keep_alive<T>(ptr: *mut T) {
 struct GcBox<T: ?Sized> {
     /// The object being garbage collected.
     value: T,
+}
+
+/// Calculate layout for `ArcInner<T>` using the inner value's layout
+fn arcinner_layout_for_value_layout(layout: Layout) -> Layout {
+    // Calculate layout using the given value layout.
+    // Previously, layout was calculated on the expression
+    // `&*(ptr as *const ArcInner<T>)`, but this created a misaligned
+    // reference (see #54908).
+    Layout::new::<GcBox<()>>().extend(layout).unwrap().0.pad_to_align()
 }
 
 /// A multi-threaded garbage collected pointer.
@@ -465,6 +481,49 @@ impl FinalizerInfo {
     }
 }
 
+#[cfg(not(no_global_oom_handling))]
+#[stable(feature = "from_for_ptrs", since = "1.6.0")]
+impl<T> From<T> for Gc<T> {
+    /// Converts a `T` into an `Arc<T>`
+    ///
+    /// The conversion moves the value into a
+    /// newly allocated `Arc`. It is equivalent to
+    /// calling `Arc::new(t)`.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use std::sync::Arc;
+    /// let x = 5;
+    /// let arc = Arc::new(5);
+    ///
+    /// assert_eq!(Arc::from(x), arc);
+    /// ```
+    fn from(t: T) -> Self {
+        Gc::new(t)
+    }
+}
+
+#[cfg(not(no_global_oom_handling))]
+#[stable(feature = "shared_from_array", since = "1.74.0")]
+impl<T, const N: usize> From<[T; N]> for Gc<[T]> {
+    /// Converts a [`[T; N]`](prim@array) into an `Arc<[T]>`.
+    ///
+    /// The conversion moves the array into a newly allocated `Arc`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use std::sync::Arc;
+    /// let original: [i32; 3] = [1, 2, 3];
+    /// let shared: Arc<[i32]> = Arc::from(original);
+    /// assert_eq!(&[1, 2, 3], &shared[..]);
+    /// ```
+    #[inline]
+    fn from(v: [T; N]) -> Gc<[T]> {
+        Gc::<[T; N]>::from(v)
+    }
+}
+
 impl Gc<dyn Any> {
     /// Attempt to downcast the `Gc<dyn Any>` to a concrete type.
     ///
@@ -531,6 +590,194 @@ impl Gc<dyn Any> {
         unsafe {
             let ptr = self.ptr.cast::<GcBox<T>>();
             Gc::from_inner(ptr)
+        }
+    }
+}
+
+#[cfg(not(no_global_oom_handling))]
+#[stable(feature = "shared_from_slice", since = "1.21.0")]
+impl<T: Clone> From<&[T]> for Gc<[T]> {
+    /// Allocate a reference-counted slice and fill it by cloning `v`'s items.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use std::sync::Gc;
+    /// let original: &[i32] = &[1, 2, 3];
+    /// let shared: Gc<[i32]> = Gc::from(original);
+    /// assert_eq!(&[1, 2, 3], &shared[..]);
+    /// ```
+    #[inline]
+    fn from(v: &[T]) -> Gc<[T]> {
+        <Self as GcFromSlice<T>>::from_slice(v)
+    }
+}
+
+#[cfg(not(no_global_oom_handling))]
+#[stable(feature = "shared_from_slice", since = "1.21.0")]
+impl From<&str> for Gc<str> {
+    /// Allocate a reference-counted `str` and copy `v` into it.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use std::sync::Gc;
+    /// let shared: Gc<str> = Gc::from("eggplant");
+    /// assert_eq!("eggplant", &shared[..]);
+    /// ```
+    #[inline]
+    fn from(v: &str) -> Gc<str> {
+        let arc = Gc::<[u8]>::from(v.as_bytes());
+        Gc::from_raw(Gc::into_raw(arc) as *const str)
+    }
+}
+
+#[cfg(not(no_global_oom_handling))]
+#[stable(feature = "shared_from_slice", since = "1.21.0")]
+impl From<String> for Gc<str> {
+    /// Allocate a reference-counted `str` and copy `v` into it.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use std::sync::Gc;
+    /// let unique: String = "eggplant".to_owned();
+    /// let shared: Gc<str> = Gc::from(unique);
+    /// assert_eq!("eggplant", &shared[..]);
+    /// ```
+    #[inline]
+    fn from(v: String) -> Gc<str> {
+        Gc::from(&v[..])
+    }
+}
+
+/// Specialization trait used for `From<&[T]>`.
+#[cfg(not(no_global_oom_handling))]
+trait GcFromSlice<T> {
+    fn from_slice(slice: &[T]) -> Self;
+}
+
+#[cfg(not(no_global_oom_handling))]
+impl<T: Clone> GcFromSlice<T> for Gc<[T]> {
+    #[inline]
+    default fn from_slice(v: &[T]) -> Self {
+        unsafe { Self::from_iter_exact(v.iter().cloned(), v.len()) }
+    }
+}
+
+#[cfg(not(no_global_oom_handling))]
+impl<T: Copy> GcFromSlice<T> for Gc<[T]> {
+    #[inline]
+    fn from_slice(v: &[T]) -> Self {
+        unsafe { Gc::copy_from_slice(v) }
+    }
+}
+
+impl<T: ?Sized> Gc<T> {
+    /// Allocates an `GcBox<T>` with sufficient space for
+    /// a possibly-unsized inner value where the value has the layout provided.
+    ///
+    /// The function `mem_to_arcinner` is called with the data pointer
+    /// and must return back a (potentially fat)-pointer for the `GcBox<T>`.
+    #[cfg(not(no_global_oom_handling))]
+    unsafe fn allocate_for_layout(
+        value_layout: Layout,
+        allocate: impl FnOnce(Layout) -> Result<NonNull<[u8]>, AllocError>,
+        mem_to_arcinner: impl FnOnce(*mut u8) -> *mut GcBox<T>,
+    ) -> *mut GcBox<T> {
+        let layout = arcinner_layout_for_value_layout(value_layout);
+
+        let ptr = allocate(layout).unwrap_or_else(|_| handle_alloc_error(layout));
+
+        unsafe { Self::initialize_arcinner(ptr, layout, mem_to_arcinner) }
+    }
+
+    unsafe fn initialize_arcinner(
+        ptr: NonNull<[u8]>,
+        layout: Layout,
+        mem_to_arcinner: impl FnOnce(*mut u8) -> *mut GcBox<T>,
+    ) -> *mut GcBox<T> {
+        let inner = mem_to_arcinner(ptr.as_non_null_ptr().as_ptr());
+        debug_assert_eq!(unsafe { Layout::for_value_raw(inner) }, layout);
+
+
+        inner
+    }
+}
+
+impl<T> Gc<[T]> {
+    /// Allocates an `GcBox<[T]>` with the given length.
+    #[cfg(not(no_global_oom_handling))]
+    unsafe fn allocate_for_slice(len: usize) -> *mut GcBox<[T]> {
+        unsafe {
+            Self::allocate_for_layout(
+                Layout::array::<T>(len).unwrap(),
+                |layout| Global.allocate(layout),
+                |mem| ptr::slice_from_raw_parts_mut(mem.cast::<T>(), len) as *mut GcBox<[T]>,
+            )
+        }
+    }
+
+    /// Copy elements from slice into newly allocated `Gc<[T]>`
+    ///
+    /// Unsafe because the caller must either take ownership or bind `T: Copy`.
+    #[cfg(not(no_global_oom_handling))]
+    unsafe fn copy_from_slice(v: &[T]) -> Gc<[T]> {
+        unsafe {
+            let ptr = Self::allocate_for_slice(v.len());
+
+            ptr::copy_nonoverlapping(v.as_ptr(), ptr::addr_of_mut!((*ptr).value) as *mut T, v.len());
+
+            Self::from_ptr(ptr)
+        }
+    }
+
+    /// Constructs an `Gc<[T]>` from an iterator known to be of a certain size.
+    ///
+    /// Behavior is undefined should the size be wrong.
+    #[cfg(not(no_global_oom_handling))]
+    unsafe fn from_iter_exact(iter: impl Iterator<Item = T>, len: usize) -> Gc<[T]> {
+        // Panic guard while cloning T elements.
+        // In the event of a panic, elements that have been written
+        // into the new GcBox will be dropped, then the memory freed.
+        struct Guard<T> {
+            mem: NonNull<u8>,
+            elems: *mut T,
+            layout: Layout,
+            n_elems: usize,
+        }
+
+        impl<T> Drop for Guard<T> {
+            fn drop(&mut self) {
+                unsafe {
+                    let slice = from_raw_parts_mut(self.elems, self.n_elems);
+                    ptr::drop_in_place(slice);
+
+                    Global.deallocate(self.mem, self.layout);
+                }
+            }
+        }
+
+        unsafe {
+            let ptr = Self::allocate_for_slice(len);
+
+            let mem = ptr as *mut _ as *mut u8;
+            let layout = Layout::for_value_raw(ptr);
+
+            // Pointer to first element
+            let elems = ptr::addr_of_mut!((*ptr).value) as *mut T;
+
+            let mut guard = Guard { mem: NonNull::new_unchecked(mem), elems, layout, n_elems: 0 };
+
+            for (i, item) in iter.enumerate() {
+                ptr::write(elems.add(i), item);
+                guard.n_elems += 1;
+            }
+
+            // All clear. Forget the guard so it doesn't free the new GcBox.
+            mem::forget(guard);
+
+            Self::from_ptr(ptr)
         }
     }
 }
