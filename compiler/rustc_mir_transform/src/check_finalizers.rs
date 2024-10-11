@@ -15,8 +15,14 @@ pub struct CheckFinalizers;
 
 impl<'tcx> MirPass<'tcx> for CheckFinalizers {
     fn run_pass(&self, tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
-        let ctor = tcx.get_diagnostic_item(sym::gc_ctor);
+        let is_gc_crate = tcx
+            .get_diagnostic_item(sym::gc)
+            .map_or(false, |gc| gc.krate == body.source.def_id().krate);
+        if is_gc_crate {
+            return;
+        }
 
+        let ctor = tcx.get_diagnostic_item(sym::gc_ctor);
         if ctor.is_none() {
             return;
         }
