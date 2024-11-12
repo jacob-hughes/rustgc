@@ -1,10 +1,13 @@
 #![allow(rustc::untranslatable_diagnostic)]
 #![allow(rustc::diagnostic_outside_of_impl)]
+#![allow(dead_code)]
+#![allow(unused_mut)]
 use rustc_data_structures::fx::FxHashSet;
 use rustc_hir::def_id::DefId;
 use rustc_hir::lang_items::LangItem;
 use rustc_middle::mir::visit::PlaceContext;
 use rustc_middle::mir::visit::Visitor;
+use rustc_middle::mir::visit::TyContext;
 use rustc_middle::mir::*;
 use rustc_middle::ty::{self, ParamEnv, Ty, TyCtxt};
 use rustc_span::symbol::sym;
@@ -33,6 +36,7 @@ enum FinalizerErrorKind<'tcx> {
     UnsoundExternalDropGlue(FnInfo<'tcx>),
     /// Contains an inline assembly block, which can do anything, so we can't be certain it's safe.
     InlineAsm(FnInfo<'tcx>),
+    ThreadLocal(FnInfo<'tcx>),
 }
 
 /// Information about the projection which caused the FSA error.
@@ -162,12 +166,23 @@ impl<'tcx> FSAEntryPointCtxt<'tcx> {
         Self { fn_span, arg_span, value_ty, tcx, param_env }
     }
 
+    fn is_safe_to_move(&self, ty: Ty<'tcx>) -> bool {
+        ty.is_finalize_unchecked(self.tcx)
+            || (ty.is_send(self.tcx, self.param_env)
+                && ty.is_sync(self.tcx, self.param_env)
+                && ty.is_finalizer_safe(self.tcx, self.param_env))
+
+        // And check the drop method is safe.
+    }
+
     fn check_drop_glue(&self) {
         if !self.value_ty.needs_finalizer(self.tcx, self.param_env)
             || self.value_ty.is_finalize_unchecked(self.tcx)
         {
             return;
         }
+
+        let mut analysis_kind = AnalysisKind::Full;
 
         if self.value_ty.is_send(self.tcx, self.param_env)
             && self.value_ty.is_sync(self.tcx, self.param_env)
@@ -237,16 +252,16 @@ impl<'tcx> FSAEntryPointCtxt<'tcx> {
                             poly_drop_fn_did,
                             self.tcx.mk_args_trait(ty, substs.into_iter()),
                         );
-                        match DropCtxt::new(drop_instance, ty, self).check() {
-                            Err(_) if in_std_lib(self.tcx, def.did()) => {
-                                let fn_info = FnInfo::new(rustc_span::DUMMY_SP, ty);
-                                errors.push(FinalizerErrorKind::UnsoundExternalDropGlue(fn_info));
-                                // We skip checking the drop methods of this standard library
-                                // type's fields -- we already know that it has an unsafe finaliser, so
-                                // going over its fields serves no purpose other than to confuse users
-                                // with extraneous FSA errors that they won't be able to fix anyway.
-                                continue;
-                            }
+                        match DropCtxt::new(drop_instance, ty, analysis_kind, self).check() {
+                            // Err(_) if in_std_lib(self.tcx, def.did()) => {
+                            //     let fn_info = FnInfo::new(rustc_span::DUMMY_SP, ty);
+                            //     errors.push(FinalizerErrorKind::UnsoundExternalDropGlue(fn_info));
+                            //     // We skip checking the drop methods of this standard library
+                            //     // type's fields -- we already know that it has an unsafe finaliser, so
+                            //     // going over its fields serves no purpose other than to confuse users
+                            //     // with extraneous FSA errors that they won't be able to fix anyway.
+                            //     continue;
+                            // }
                             Err(ref mut e) => errors.append(e),
                             _ => (),
                         }
@@ -410,6 +425,17 @@ impl<'tcx> FSAEntryPointCtxt<'tcx> {
                     format!("this assembly block is not safe to run in a finalizer"),
                 );
             }
+            FinalizerErrorKind::ThreadLocal(fi) => {
+                err = self.tcx.sess.psess.dcx.struct_span_err(
+                    self.arg_span,
+                    format!("The drop method for `{0}` cannot be safely finalized.", fi.drop_ty),
+                );
+                err.span_label(
+                    fi.span,
+                    format!("this thread-local is not safe to run in a finalizer"),
+                );
+                err.help("`Gc` runs finalizers on a separate thread, so thread-locals cannot be accessed.");
+            }
         }
         err.span_label(
             self.fn_span,
@@ -417,6 +443,13 @@ impl<'tcx> FSAEntryPointCtxt<'tcx> {
         );
         err.emit();
     }
+}
+
+#[derive(Copy, Clone)]
+enum AnalysisKind {
+    Full,
+    ThreadLocalOnly,
+    Nop,
 }
 
 /// The central data structure for performing FSA on a particular type's drop method.
@@ -432,6 +465,7 @@ struct DropCtxt<'ecx, 'tcx> {
     /// The type of the value whose drop method we are currently checking. Used for emitting nicer,
     /// contextual FSA error messages.
     drop_ty: Ty<'tcx>,
+    analysis_kind: AnalysisKind,
     /// Context for the entry point (e.g `Gc::new` or `Gc::from`).
     ecx: &'ecx FSAEntryPointCtxt<'tcx>,
     /// The monomorphized function instances which have already been visited by FSA. This is a set
@@ -447,16 +481,20 @@ impl<'ecx, 'tcx> DropCtxt<'ecx, 'tcx> {
     fn new(
         drop_instance: ty::Instance<'tcx>,
         drop_ty: Ty<'tcx>,
+        analysis_kind: AnalysisKind,
         ecx: &'ecx FSAEntryPointCtxt<'tcx>,
     ) -> Self {
         let mut callsites = VecDeque::default();
         callsites.push_back(drop_instance);
-        Self { callsites, ecx, drop_ty, visited_fns: FxHashSet::default() }
+        Self { callsites, drop_ty, analysis_kind, ecx, visited_fns: FxHashSet::default() }
     }
 
     fn check(mut self) -> Result<(), Vec<FinalizerErrorKind<'tcx>>> {
         let mut errors = Vec::new();
         loop {
+            if let AnalysisKind::Nop = self.analysis_kind {
+                break;
+            }
             let Some(instance) = self.callsites.pop_front() else {
                 break;
             };
@@ -520,6 +558,12 @@ impl<'dcx, 'ecx, 'tcx> Visitor<'tcx> for FuncCtxt<'dcx, 'ecx, 'tcx> {
         context: PlaceContext,
         location: Location,
     ) {
+
+        match self.dcx.analysis_kind {
+            AnalysisKind::ThreadLocalOnly | AnalysisKind::Nop => return,
+            _ => (),
+        }
+
         // A single projection can be comprised of other 'inner' projections (e.g. self.a.b.c), so
         // this loop ensures that the types of each intermediate projection is extracted and then
         // checked.
@@ -558,20 +602,41 @@ impl<'dcx, 'ecx, 'tcx> Visitor<'tcx> for FuncCtxt<'dcx, 'ecx, 'tcx> {
     }
 
     fn visit_terminator(&mut self, terminator: &Terminator<'tcx>, location: Location) {
+        match self.dcx.analysis_kind {
+            AnalysisKind::Nop => return,
+            _ => (),
+        }
         let (instance, info) = match &terminator.kind {
             TerminatorKind::Call { func, fn_span, .. } => {
-                match func.ty(self.body, self.tcx()).kind() {
+                let fn_ty = func.ty(self.body, self.tcx());
+                match fn_ty.kind() {
                     ty::FnDef(fn_did, substs) => {
                         let info = FnInfo::new(*fn_span, self.dcx.drop_ty);
-                        let Ok(instance) = ty::Instance::resolve(
+                        let instance = ty::Instance::expect_resolve(
                             self.tcx(),
                             self.ecx().param_env,
                             *fn_did,
                             substs,
-                        ) else {
-                            bug!();
-                        };
-                        (instance, info)
+                        );
+                        if instance
+                            .def
+                            .get_attrs(self.tcx(), sym::rustc_fsa_safe_fn)
+                            .next()
+                            .is_some()
+                        {
+                            // if fn_ty
+                            //     .fn_sig(self.tcx())
+                            //     .inputs()
+                            //     .skip_binder()
+                            //     .into_iter()
+                            //     .all(|ty| self.ecx().is_safe_to_move(*ty))
+                            // {
+                                self.super_terminator(terminator, location);
+                                return;
+                            // }
+                        }
+                        dbg!(instance);
+                        (Some(instance), info)
                     }
                     ty::FnPtr(..) => {
                         // FSA doesn't support function pointers so this will trigger an error down
@@ -637,9 +702,27 @@ impl<'dcx, 'ecx, 'tcx> Visitor<'tcx> for FuncCtxt<'dcx, 'ecx, 'tcx> {
             Some(instance) if self.tcx().is_mir_available(instance.def_id()) => {
                 self.dcx.callsites.push_back(instance);
             }
-            _ => self.push_error(location, FinalizerErrorKind::MissingFnDef(info)),
+            _ => {
+                self.push_error(location, FinalizerErrorKind::MissingFnDef(info))
+            }
         };
         self.super_terminator(terminator, location);
+    }
+
+    fn visit_ty(&mut self, ty: Ty<'tcx>, cx: TyContext) {
+        if !ty.is_thread_local(self.tcx()) {
+            self.super_ty(ty);
+            return;
+        }
+
+        let TyContext::Location(loc) = cx else {
+            bug!();
+        };
+
+        let span = self.body.source_info(loc).span;
+        let info = FnInfo::new(span, self.dcx.drop_ty);
+        self.push_error(loc, FinalizerErrorKind::ThreadLocal(info));
+        self.dcx.analysis_kind = AnalysisKind::Nop;
     }
 }
 
