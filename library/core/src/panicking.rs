@@ -343,6 +343,7 @@ pub enum AssertKind {
 #[cfg_attr(not(feature = "panic_immediate_abort"), inline(never), cold)]
 #[cfg_attr(feature = "panic_immediate_abort", inline)]
 #[track_caller]
+#[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
 #[doc(hidden)]
 pub fn assert_failed<T, U>(
     kind: AssertKind,
@@ -361,6 +362,7 @@ where
 #[cfg_attr(not(feature = "panic_immediate_abort"), inline(never), cold)]
 #[cfg_attr(feature = "panic_immediate_abort", inline)]
 #[track_caller]
+#[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
 #[doc(hidden)]
 pub fn assert_matches_failed<T: fmt::Debug + ?Sized>(
     left: &T,
@@ -381,6 +383,7 @@ pub fn assert_matches_failed<T: fmt::Debug + ?Sized>(
 #[cfg_attr(not(feature = "panic_immediate_abort"), inline(never), cold)]
 #[cfg_attr(feature = "panic_immediate_abort", inline)]
 #[track_caller]
+#[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
 fn assert_failed_inner(
     kind: AssertKind,
     left: &dyn fmt::Debug,

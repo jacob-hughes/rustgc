@@ -638,6 +638,12 @@ impl<'tcx> Instance<'tcx> {
         Instance::expect_resolve(tcx, ty::ParamEnv::reveal_all(), def_id, args)
     }
 
+    pub fn try_resolve_drop_in_place(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> Result<Option<ty::Instance<'tcx>>, ErrorGuaranteed> {
+        let def_id = tcx.require_lang_item(LangItem::DropInPlace, None);
+        let args = tcx.mk_args(&[ty.into()]);
+        Instance::resolve(tcx, ty::ParamEnv::reveal_all(), def_id, args)
+    }
+
     #[instrument(level = "debug", skip(tcx), ret)]
     pub fn fn_once_adapter_instance(
         tcx: TyCtxt<'tcx>,

@@ -25,15 +25,19 @@ extern "Rust" {
     // like `malloc`, `realloc`, and `free`, respectively.
     #[rustc_allocator]
     #[rustc_nounwind]
+    #[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
     fn __rust_alloc(size: usize, align: usize) -> *mut u8;
     #[rustc_deallocator]
     #[rustc_nounwind]
+    #[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
     fn __rust_dealloc(ptr: *mut u8, size: usize, align: usize);
     #[rustc_reallocator]
     #[rustc_nounwind]
+    #[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
     fn __rust_realloc(ptr: *mut u8, old_size: usize, align: usize, new_size: usize) -> *mut u8;
     #[rustc_allocator_zeroed]
     #[rustc_nounwind]
+    #[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
     fn __rust_alloc_zeroed(size: usize, align: usize) -> *mut u8;
 
     static __rust_no_alloc_shim_is_unstable: u8;
@@ -89,6 +93,7 @@ pub use std::alloc::Global;
 /// }
 /// ```
 #[stable(feature = "global_alloc", since = "1.28.0")]
+#[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
 #[must_use = "losing the pointer will leak memory"]
 #[inline]
 pub unsafe fn alloc(layout: Layout) -> *mut u8 {
@@ -132,6 +137,7 @@ pub unsafe fn dealloc(ptr: *mut u8, layout: Layout) {
 ///
 /// See [`GlobalAlloc::realloc`].
 #[stable(feature = "global_alloc", since = "1.28.0")]
+#[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
 #[must_use = "losing the pointer will leak memory"]
 #[inline]
 pub unsafe fn realloc(ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
@@ -166,6 +172,7 @@ pub unsafe fn realloc(ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 
 /// }
 /// ```
 #[stable(feature = "global_alloc", since = "1.28.0")]
+#[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
 #[must_use = "losing the pointer will leak memory"]
 #[inline]
 pub unsafe fn alloc_zeroed(layout: Layout) -> *mut u8 {
@@ -342,6 +349,7 @@ extern "Rust" {
     // This is the magic symbol to call the global alloc error handler. rustc generates
     // it to call `__rg_oom` if there is a `#[alloc_error_handler]`, or to call the
     // default implementations below (`__rdl_oom`) otherwise.
+    #[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
     fn __rust_alloc_error_handler(size: usize, align: usize) -> !;
 }
 

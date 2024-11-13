@@ -1237,6 +1237,7 @@ impl<T: ?Sized, A: Allocator> Box<T, A> {
 #[stable(feature = "rust1", since = "1.0.0")]
 unsafe impl<#[may_dangle] T: ?Sized, A: Allocator> Drop for Box<T, A> {
     #[inline]
+    #[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
     fn drop(&mut self) {
         // the T in the Box is dropped by the compiler before the destructor is run
 

@@ -579,6 +579,7 @@ where
 
 unsafe impl<#[may_dangle] T, A: Allocator> Drop for RawVec<T, A> {
     /// Frees the memory owned by the `RawVec` *without* trying to drop its contents.
+    #[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
     fn drop(&mut self) {
         if let Some((ptr, layout)) = self.current_memory() {
             unsafe { self.alloc.deallocate(ptr, layout) }

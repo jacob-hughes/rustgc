@@ -166,11 +166,10 @@ impl<'tcx> FSAEntryPointCtxt<'tcx> {
         Self { fn_span, arg_span, value_ty, tcx, param_env }
     }
 
-    fn is_safe_to_move(&self, ty: Ty<'tcx>) -> bool {
+    fn is_fsa_safe(&self, ty: Ty<'tcx>) -> bool {
         ty.is_finalize_unchecked(self.tcx)
             || (ty.is_send(self.tcx, self.param_env)
-                && ty.is_sync(self.tcx, self.param_env)
-                && ty.is_finalizer_safe(self.tcx, self.param_env))
+                && ty.is_sync(self.tcx, self.param_env))
 
         // And check the drop method is safe.
     }
@@ -182,23 +181,20 @@ impl<'tcx> FSAEntryPointCtxt<'tcx> {
             return;
         }
 
-        let mut analysis_kind = AnalysisKind::Full;
-
-        if self.value_ty.is_send(self.tcx, self.param_env)
-            && self.value_ty.is_sync(self.tcx, self.param_env)
-            && self.value_ty.is_finalizer_safe(self.tcx, self.param_env)
-        {
-            return;
-        }
-
         let mut errors = Vec::new();
         let mut tys = vec![self.value_ty];
 
+        // Iterate over each type subtype looking for a type with drop glue.
         loop {
             let Some(ty) = tys.pop() else {
                 break;
             };
 
+            let mut analysis_kind = AnalysisKind::Full;
+
+            if self.is_fsa_safe(ty) {
+                analysis_kind = AnalysisKind::ThreadLocalOnly;
+            }
             // We must now identify every drop method in the drop glue for `ty`. This means looking
             // at each component type and adding those to the stack for later processing.
             match ty.kind() {
@@ -252,6 +248,10 @@ impl<'tcx> FSAEntryPointCtxt<'tcx> {
                             poly_drop_fn_did,
                             self.tcx.mk_args_trait(ty, substs.into_iter()),
                         );
+                        // if let  AnalysisKind::Full = analysis_kind {
+                        //     dbg!(ty);
+                        //
+                        // }
                         match DropCtxt::new(drop_instance, ty, analysis_kind, self).check() {
                             // Err(_) if in_std_lib(self.tcx, def.did()) => {
                             //     let fn_info = FnInfo::new(rustc_span::DUMMY_SP, ty);
@@ -503,6 +503,14 @@ impl<'ecx, 'tcx> DropCtxt<'ecx, 'tcx> {
                 continue;
             }
             self.visited_fns.insert(instance);
+            if instance
+                .def
+                .get_attrs(self.ecx.tcx, sym::rustc_fsa_safe_fn)
+                .next()
+                .is_some()
+            {
+                continue;
+            }
 
             let Some(mir) = self.ecx.prefer_instantiated_mir(instance) else {
                 bug!();
@@ -635,14 +643,14 @@ impl<'dcx, 'ecx, 'tcx> Visitor<'tcx> for FuncCtxt<'dcx, 'ecx, 'tcx> {
                                 return;
                             // }
                         }
-                        dbg!(instance);
                         (Some(instance), info)
                     }
-                    ty::FnPtr(..) => {
+                    ty::FnPtr(_) => {
                         // FSA doesn't support function pointers so this will trigger an error down
                         // the line.
                         let span = terminator.source_info.span;
                         let info = FnInfo::new(span, self.dcx.drop_ty);
+
                         (None, info)
                     }
                     _ => bug!(),
@@ -650,7 +658,14 @@ impl<'dcx, 'ecx, 'tcx> Visitor<'tcx> for FuncCtxt<'dcx, 'ecx, 'tcx> {
             }
             TerminatorKind::Drop { place, .. } => {
                 let glue_ty = place.ty(self.body, self.tcx()).ty;
-                let glue = ty::Instance::resolve_drop_in_place(self.tcx(), glue_ty);
+                // let span = terminator.source_info.span;
+                let try_glue = ty::Instance::try_resolve_drop_in_place(self.tcx(), glue_ty);
+                let Ok(inner_glue) = try_glue else {
+                    return;
+                };
+                let Some(glue) = inner_glue else {
+                    return;
+                };
                 let ty::InstanceDef::DropGlue(_, ty) = glue.def else {
                     bug!();
                 };
@@ -701,6 +716,23 @@ impl<'dcx, 'ecx, 'tcx> Visitor<'tcx> for FuncCtxt<'dcx, 'ecx, 'tcx> {
         match instance {
             Some(instance) if self.tcx().is_mir_available(instance.def_id()) => {
                 self.dcx.callsites.push_back(instance);
+            }
+            Some(instance) => {
+                if let AnalysisKind::ThreadLocalOnly = self.dcx.analysis_kind {
+                    match instance.def {
+                        ty::InstanceDef::Intrinsic(..) => {
+                            self.dcx.visited_fns.insert(instance);
+                        }
+                        _ => {
+                            self.dcx.visited_fns.insert(instance);
+                            self.super_terminator(terminator, location);
+                            return;
+                            // self.push_error(location, FinalizerErrorKind::ThreadLocal(info))
+                        }
+
+                    }
+                }
+
             }
             _ => {
                 self.push_error(location, FinalizerErrorKind::MissingFnDef(info))

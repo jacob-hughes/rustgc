@@ -60,6 +60,7 @@ macro_rules! assert_unsafe_precondition {
             #[rustc_no_mir_inline]
             #[inline]
             #[rustc_nounwind]
+            #[cfg_attr(not(bootstrap), rustc_fsa_safe_fn)]
             #[rustc_const_unstable(feature = "const_ub_checks", issue = "none")]
             const fn precondition_check($($name:$ty),*) {
                 if !$e {
