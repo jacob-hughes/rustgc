@@ -175,17 +175,17 @@ pub struct GcStats {
 ////////////////////////////////////////////////////////////////////////////////
 #[cfg(feature = "log-stats")]
 pub fn stats() -> GcStats {
-    #[cfg(feature("finalizer-elision"))]
+    #[cfg(feature = "finalizer-elision")]
     let elision_enabled = 1;
-    #[cfg(not(feature("finalizer-elision")))]
+    #[cfg(not(feature = "finalizer-elision"))]
     let elision_enabled = 0;
-    #[cfg(feature("premature-finalizer-prevention"))]
+    #[cfg(feature = "premature-finalizer-prevention")]
     let prem_enabled = 1;
-    #[cfg(not(feature("premature-finalizer-prevention")))]
+    #[cfg(not(feature = "premature-finalizer-prevention"))]
     let prem_enabled = 0;
-    #[cfg(feature("premature-finalizer-prevention-optimize"))]
+    #[cfg(feature = "premature-finalizer-prevention-optimize")]
     let premopt_enabled = 1;
-    #[cfg(not(feature("premature-finalizer-prevention-optimize")))]
+    #[cfg(not(feature = "premature-finalizer-prevention-optimize"))]
     let premopt_enabled = 0;
 
     GcStats {
