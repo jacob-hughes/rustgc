@@ -161,8 +161,12 @@ impl GcAllocator {
 #[cfg(feature = "log-stats")]
 #[derive(Debug, Copy, Clone)]
 pub struct GcStats {
+    pub elision_enabled: u8
+    pub prem_enabled: u8
+    pub premopt_enabled: u8,
     pub num_finalizers_registered: u64,
     pub num_finalizers_completed: u64,
+    pub num_finalizers_elidable: u64,
     pub num_allocated_gc: u64,
     pub num_allocated_boxed: u64,
     pub num_allocated_arc: u64,
@@ -194,6 +198,7 @@ pub fn stats() -> GcStats {
         premopt_enabled,
         num_finalizers_registered: GC_COUNTERS.finalizers_registered.load(atomic::Ordering::Relaxed),
         num_finalizers_completed: unsafe { bdwgc::GC_finalized_total() },
+        num_finalizers_elidable: GC_COUNTERS.finalizers_elidable.load(atomic::Ordering::Relaxed),
         num_allocated_gc: GC_COUNTERS.allocated_gc.load(atomic::Ordering::Relaxed),
         num_allocated_boxed: GC_COUNTERS.allocated_boxed.load(atomic::Ordering::Relaxed),
         num_allocated_rc: GC_COUNTERS.allocated_rc.load(atomic::Ordering::Relaxed),
