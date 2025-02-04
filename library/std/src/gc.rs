@@ -161,8 +161,8 @@ impl GcAllocator {
 #[cfg(feature = "log-stats")]
 #[derive(Debug, Copy, Clone)]
 pub struct GcStats {
-    pub elision_enabled: u8
-    pub prem_enabled: u8
+    pub elision_enabled: u8,
+    pub prem_enabled: u8,
     pub premopt_enabled: u8,
     pub num_finalizers_registered: u64,
     pub num_finalizers_completed: u64,
