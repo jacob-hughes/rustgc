@@ -123,15 +123,30 @@ pub(crate) fn log_stats() {
         .unwrap();
 
     let headers =
-        "finalizers registered,finalizers completed,GC allocated,boxed allocated,GC cycles";
+        "elision enabled,\
+        premature finalizer prevention enabled,\
+        premopt enabled,\
+        finalizers registered,\
+        finalizers completed,\
+        Gc allocated,\
+        Box allocated,\
+        Rc allocated,\
+        Arc allocated,\
+        STW pauses";
     let stats = crate::gc::stats();
     let stats = format!(
-        "{},{},{},{},{}\n",
-        stats.finalizers_registered,
-        stats.finalizers_completed,
-        stats.allocated_gc,
-        stats.allocated_boxed,
-        stats.num_gcs
+        "{},{},{},{},{},{},{},{},{}\n",
+        stats.elision_enabled,
+        stats.prem_enabled,
+        stats.premopt_enabled,
+        stats.num_finalizers_registered,
+        stats.num_finalizers_completed,
+        stats.num_finalizers_elidable,
+        stats.num_allocated_gc,
+        stats.num_allocated_boxed,
+        stats.num_allocated_rc,
+        stats.num_allocated_arc,
+        stats.num_cycles
     );
     write!(filename, "{}", format!("{headers}\n{stats}")).unwrap();
 }
