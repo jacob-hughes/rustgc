@@ -135,7 +135,7 @@ pub(crate) fn log_stats() {
         STW pauses";
     let stats = crate::gc::stats();
     let stats = format!(
-        "{},{},{},{},{},{},{},{},{}\n",
+        "{},{},{},{},{},{},{},{},{},{},{}\n",
         stats.elision_enabled,
         stats.prem_enabled,
         stats.premopt_enabled,
